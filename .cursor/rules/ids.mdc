@@ -1,0 +1,77 @@
+---
+description: Intapp Design System (IDS/UDS) rules — apply to all files in this project
+globs: ["**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx", "**/*.css", "**/*.scss"]
+alwaysApply: true
+---
+
+# IDS (Intapp Design System)
+
+This project uses the Intapp Design System (IDS/UDS). Use only IDS components, tokens, and icons — no third-party UI libraries or hardcoded values.
+
+## Reference files
+
+The full component reference for this project is at:
+  `node_modules/@ids/react-next/claude/docs/using-uds-react-next.md`
+
+Read this file when the user asks about UDS component props, slots, or behaviour, or when generating UDS component code.
+
+Styles reference for this project is at:
+  `node_modules/@ids/styles/claude/docs/using-uds-styles.md`
+
+Read this file when the user asks about UDS design tokens as CSS custom properties, typography classes, theming via data-mode, or how to load the compiled CSS bundle. Also read it when generating SCSS or CSS that should use UDS tokens.
+
+Tokens reference for this project is at:
+  `node_modules/@ids/tokens/claude/docs/using-uds-tokens.md`
+
+Read this file when the user asks about consuming raw design tokens directly (SCSS variables, JS exports, token JSON), token naming conventions, or using tokens outside of CSS.
+
+The upgrade workflows for each `@ids/*` package are at:
+  `node_modules/@ids/react-next/claude/skills/upgrade-ids-react-next/SKILL.md`
+  `node_modules/@ids/styles/claude/skills/upgrade-ids-styles/SKILL.md`
+  `node_modules/@ids/tokens/claude/skills/upgrade-ids-tokens/SKILL.md`
+
+When the user says "upgrade @ids/&lt;pkg&gt;", "migrate to UDS vX", or has just bumped an `@ids/*` version in `package.json`, read the relevant skill file and follow its instructions.
+
+## Imports
+
+Import styles once in `app/layout.jsx`:
+
+```js
+import '@ids/react-next/styles.css';
+import './globals.css'; // local overrides only
+```
+
+```jsx
+'use client';
+import dynamic from 'next/dynamic';
+
+const UdsButton = dynamic(
+  () => import('@ids/react-next/client').then((m) => ({ default: m.UdsButton })),
+  { ssr: false }
+);
+```
+
+Dark mode: add `data-mode="dark"` to `<html>` or `<body>`.
+
+## Rules
+
+1. **Never** call `import '@ids/react-next/client'` at the module level
+2. **Never** use kebab-case tags like `<uds-button>` in JSX — use PascalCase like `<UdsButton>`
+3. **Never** use `appearance` on buttons — use `variant`
+4. **Never** put button text as inner HTML — use the `label` attribute
+5. **Never** hardcode colors, spacing, or font sizes — use CSS custom properties from `@ids/tokens`
+6. **Never** add the `ids-icon-` prefix to icon names — components add it automatically
+7. **Always** add `'use client'` to any file that uses UDS components
+8. **Always** give each component its own `dynamic()` call
+9. **Always** import styles in `app/layout.jsx`, not in client components
+10. **Always** use kebab-case for attribute values (e.g. `left-icon="add-circle"`)
+11. **Always** use camelCase for React event handlers (`onClick`, `onChange`)
+12. **Always** look up slot names from `node_modules/@ids/react-next/dist/src/components/stencil-generated/<ComponentName>/<ComponentName>.types.d.ts` before using them — guessed slot names silently drop content
+
+## STRICT MODE (DES-1500)
+
+- The PreToolUse hook (`.claude/hooks/check-ids.js`) blocks writes that violate IDS rules. Read its remediation feedback and re-apply the suggested fix.
+- Never invent components or icons. Validate against `node_modules/@ids/react-next/manifest.json` and `node_modules/@ids-icons/assets/icons.json`.
+- Use `var(--ids-*)` tokens for all colour and spacing. Never use hex/rgb literals or hardcoded `px`/`rem`/`em`.
+- For component-pattern requests, follow `.cursor/rules/build-component-options.mdc` (generated at scaffold time).
+- Override (`// ids-allow:`) is allowed but requires a user-confirmed reason.

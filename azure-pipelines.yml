@@ -1,0 +1,174 @@
+trigger:
+    batch: true
+    branches:
+        include:
+            - main
+            - develop
+
+pr:
+    branches:
+        include:
+            - main
+
+pool:
+    name: standard-k8s-aks-devcp1-alfa-eastus
+    demands:
+        - ImageOverride -equals build-node22
+
+variables:
+    appServicePlan: 'asp-product-design-prototypes'
+    resourceGroup: 'product-design'
+    webAppName: 'unknown-Celeste_Connectors_KHs_Spaces_Selector_Exploration'
+    azureSubscription: 'Playground 1'
+
+stages:
+    - stage: CI
+      displayName: Build & Test
+      jobs:
+          - job: Build
+            displayName: Install, Build, Test, Package
+            steps:
+                - task: IntappArtifactory@0
+                  displayName: Setup Artifactory
+                  inputs:
+                      artifactoryConnection: artifactory.play.intapp.com
+                      type: npm
+                      command: setup
+
+                - task: IntappArtifactory@0
+                  displayName: Install
+                  inputs:
+                      artifactoryConnection: artifactory.play.intapp.com
+                      type: npm
+                      command: build
+
+                - script: npm run build
+                  displayName: Build (next build, standalone output)
+
+                - script: npm test --if-present
+                  displayName: Test
+
+                - script: |
+                      set -e
+                      mkdir -p deploy
+                      cp -r .next/standalone/. deploy/
+                      cp -r .next/static deploy/.next/static
+                      cp -r public deploy/public 2>/dev/null || true
+                  displayName: Assemble standalone bundle
+
+                - task: ArchiveFiles@2
+                  displayName: Zip deploy bundle
+                  inputs:
+                      rootFolderOrFile: deploy
+                      includeRootFolder: false
+                      archiveType: zip
+                      archiveFile: $(Build.ArtifactStagingDirectory)/app.zip
+                      replaceExistingArchive: true
+
+                - task: PublishPipelineArtifact@1
+                  displayName: Publish deploy artifact
+                  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+                  inputs:
+                      targetPath: $(Build.ArtifactStagingDirectory)/app.zip
+                      artifact: app
+
+    - stage: Deploy
+      displayName: Deploy to Azure App Service (VPN-restricted)
+      dependsOn: CI
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+      jobs:
+          - job: DeployToAppService
+            displayName: Deploy
+            steps:
+                - task: DownloadPipelineArtifact@2
+                  displayName: Download deploy artifact
+                  inputs:
+                      artifact: app
+                      targetPath: $(Pipeline.Workspace)/app
+
+                - task: AzureCLI@2
+                  displayName: Ensure Web App exists and is configured
+                  inputs:
+                      azureSubscription: $(azureSubscription)
+                      scriptType: bash
+                      scriptLocation: inlineScript
+                      inlineScript: |
+                          set -e
+                          # Sanitise: lowercase, allow [a-z0-9-], truncate to 60 chars,
+                          # then strip leading/trailing hyphens (Azure rejects names
+                          # that start or end in '-'). Use printf rather than echo to
+                          # avoid the trailing newline being converted to a hyphen.
+                          NAME=$(printf '%s' "$(webAppName)" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9-' '-' | cut -c1-60 | sed -E 's/^-+|-+$//g')
+                          echo "Resolved Web App name: $NAME"
+                          echo "##vso[task.setvariable variable=resolvedName]$NAME"
+                          # --https-only is set at create time (atomically with the resource)
+                          # because the Intapp "Intapp owned resources network restrictions"
+                          # policy DENIES creating App Services with httpsOnly=false. Setting
+                          # it via `az webapp config set` after the fact won't work — the
+                          # initial create is blocked before we get the chance.
+                          az webapp show -g $(resourceGroup) -n "$NAME" >/dev/null 2>&1 \
+                            || az webapp create \
+                                 -g $(resourceGroup) \
+                                 -p $(appServicePlan) \
+                                 -n "$NAME" \
+                                 --runtime 'NODE|22-lts' \
+                                 --https-only true \
+                                 --tags "Contact={{AUTHOR_EMAIL}}" "ManagedBy=create-intapp-app"
+                          az webapp config set -g $(resourceGroup) -n "$NAME" \
+                            --startup-file 'node server.js' \
+                            --http20-enabled true
+                          az webapp config appsettings set -g $(resourceGroup) -n "$NAME" \
+                            --settings NODE_ENV=production
+                          # Allow Intapp corporate network egress CIDRs — these are the
+                          # public IPs that traffic from Intapp's VPN/offices appears to
+                          # come from at Azure's front-end, sourced from the infra team's
+                          # documented egress ranges. Adding any Allow rule flips App
+                          # Service from default-allow to default-deny-except-listed, so
+                          # these need to be present for VPN/office access to work.
+                          # Remove legacy single-IP rules from previous iterations.
+                          for legacy in intapp-vpn intapp-vpn-egress-1 intapp-vpn-egress-2 intapp-vpn-egress-3; do
+                            az webapp config access-restriction remove -g $(resourceGroup) -n "$NAME" \
+                              --rule-name "$legacy" 2>/dev/null || true
+                          done
+                          egressCidrs=(
+                            "45.62.176.0/20"
+                            "85.255.16.0/20"
+                            "103.203.220.0/22"
+                            "113.30.128.0/20"
+                            "123.253.152.0/22"
+                            "140.82.192.0/20"
+                            "149.20.192.0/20"
+                            "150.195.192.0/20"
+                            "150.195.208.0/20"
+                            "159.117.224.0/19"
+                            "185.114.120.0/22"
+                            "199.27.32.0/19"
+                            "202.75.240.0/21"
+                            "209.206.0.0/19"
+                            "216.194.96.0/20"
+                            "216.205.112.0/20"
+                            "216.252.176.0/20"
+                            "41.137.164.49/29"
+                            "116.51.18.152/29"
+                            "124.105.152.64/29"
+                            "185.127.10.131/32"
+                            "185.127.10.132/32"
+                            "189.206.87.104/29"
+                          )
+                          i=1
+                          for cidr in "${egressCidrs[@]}"; do
+                            az webapp config access-restriction add -g $(resourceGroup) -n "$NAME" \
+                              --rule-name "intapp-corp-egress-$i" --action Allow \
+                              --ip-address "$cidr" --priority "$((99 + i))" 2>/dev/null || true
+                            i=$((i + 1))
+                          done
+
+                - task: AzureWebApp@1
+                  displayName: Deploy package to Web App
+                  inputs:
+                      azureSubscription: $(azureSubscription)
+                      appType: webAppLinux
+                      appName: $(resolvedName)
+                      package: $(Pipeline.Workspace)/app/app.zip
+                      runtimeStack: 'NODE|22-lts'
+                      startUpCommand: 'node server.js'

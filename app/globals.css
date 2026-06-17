@@ -1,0 +1,163 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-serif);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* Celeste-specific extension tokens */
+  --color-celeste-accent: var(--celeste-accent);
+  --color-celeste-badge-new: var(--celeste-badge-new);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ---------------------------------------------------------------- */
+/* Celeste palette — see Figma node 3326:2600                       */
+/* Warm stone neutrals + teal accent. Hex values lifted verbatim    */
+/* from the design tokens.                                          */
+/* ---------------------------------------------------------------- */
+:root {
+  --background: #f7f6f5;
+  --foreground: #292221;
+
+  --card: #ffffff;
+  --card-foreground: #292221;
+
+  --popover: #ffffff;
+  --popover-foreground: #292221;
+
+  --primary: #20727e;
+  --primary-foreground: #ffffff;
+
+  --secondary: #e6e1dc;
+  --secondary-foreground: #292221;
+
+  --muted: #efeae5;
+  --muted-foreground: #73605b;
+
+  --accent: #e6e1dc;
+  --accent-foreground: #292221;
+
+  --destructive: #c53030;
+
+  --border: #e6e1dc;
+  --input: #e6e1dc;
+  --ring: #20727e;
+
+  --chart-1: #20727e;
+  --chart-2: #5b9ea7;
+  --chart-3: #8bb9c0;
+  --chart-4: #b8d3d8;
+  --chart-5: #d9e6e8;
+
+  --radius: 0.5rem;
+
+  --sidebar: #f7f6f5;
+  --sidebar-foreground: #292221;
+  --sidebar-primary: #20727e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6e1dc;
+  --sidebar-accent-foreground: #292221;
+  --sidebar-border: #e6e1dc;
+  --sidebar-ring: #20727e;
+
+  /* Celeste-specific */
+  --celeste-accent: #20727e;
+  --celeste-badge-new: #0e54a9;
+}
+
+.dark {
+  --background: #1a1614;
+  --foreground: #f5f1ed;
+
+  --card: #241e1c;
+  --card-foreground: #f5f1ed;
+
+  --popover: #241e1c;
+  --popover-foreground: #f5f1ed;
+
+  --primary: #4ea3ad;
+  --primary-foreground: #1a1614;
+
+  --secondary: #2e2724;
+  --secondary-foreground: #f5f1ed;
+
+  --muted: #2e2724;
+  --muted-foreground: #a89c95;
+
+  --accent: #2e2724;
+  --accent-foreground: #f5f1ed;
+
+  --destructive: #e85d5d;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #4ea3ad;
+
+  --sidebar: #1a1614;
+  --sidebar-foreground: #f5f1ed;
+  --sidebar-primary: #4ea3ad;
+  --sidebar-primary-foreground: #1a1614;
+  --sidebar-accent: #2e2724;
+  --sidebar-accent-foreground: #f5f1ed;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #4ea3ad;
+
+  --celeste-accent: #4ea3ad;
+  --celeste-badge-new: #4a8ed5;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

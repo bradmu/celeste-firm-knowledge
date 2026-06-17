@@ -1,0 +1,17 @@
+{
+  "managed": [
+    ".claude/launch.json",
+    "azure-pipelines.yml",
+    "eslint.config.mjs",
+    "scripts/check-ids-updates.js",
+    "scripts/setup-repo.js"
+  ],
+  "userOwned": [
+    "app/globals.css",
+    "app/layout.tsx",
+    "app/page.tsx",
+    "next.config.js",
+    "package.json",
+    "tsconfig.json"
+  ]
+}

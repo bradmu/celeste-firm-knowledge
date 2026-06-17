@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "beforeSubmitPrompt": [],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "command": "node .claude/hooks/check-ids.js"
+      }
+    ]
+  }
+}

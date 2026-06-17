@@ -1,0 +1,50 @@
+---
+description: Build IDS component patterns — variants for vague requests, direct build for specific ones.
+globs: ["**/*.{tsx,jsx,ts,js,html}"]
+alwaysApply: true
+---
+
+---
+description: Build component patterns (nav bars, cards, layouts) using IDS — variants on vague requests, direct build on specific ones.
+---
+
+# Build component options (Next.js)
+
+This project uses @ids/react-next. ALL components, tokens, and icons must come from IDS — never invent styles.
+
+## When the user asks to build a component pattern
+
+Apply this heuristic to decide between two flows:
+
+**Direct build** when the request includes ≥2 of:
+- explicit dimensions (e.g. "120px tall")
+- explicit copy ("logo says 'Acme'")
+- explicit layout direction ("3 columns", "logo left, search middle, avatar right")
+- explicit style override ("primary blue background", "rounded corners")
+
+**Variants flow** otherwise.
+
+## Variants flow
+
+1. Scaffold 2–3 variants under `_ids-preview/<component-name>/`.
+   - Each variant is a self-contained file using only @ids/react-next components and var(--ids-*) tokens.
+   - Variants should differ on a meaningful axis (compact vs spacious, dense vs minimal, with/without search, etc.).
+2. Reply to the user with:
+   - The localhost URL: http://localhost:3000/_ids-preview/<component-name>
+   - A one-sentence description of each variant.
+3. Wait for the user to choose.
+4. Replace the user's intended target location with the chosen variant.
+5. Delete the other variants and the `_ids-preview/<component-name>/` entry.
+
+## Direct flow
+
+1. Build the component once at the user's intended location.
+2. Reply with what you did and where.
+
+## Always
+
+- Use only components in @ids/react-next's manifest.
+- Use only icons in @ids-icons/assets.
+- Use only var(--ids-*) tokens for colour and spacing.
+- The PreToolUse hook will block writes that violate these rules.
+- Before adding any `// ids-allow:` override, ASK the user. State what, why, and at which scope. Wait for confirmation.

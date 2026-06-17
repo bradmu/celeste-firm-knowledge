@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "files": {
+    ".claude/hooks/check-ids.js": "sha256:9afa09b0fbf8227d5260f88c3ea27592b8092759c4897cfa88da05251e4162a1",
+    ".claude/hooks/check-template-update.js": "sha256:3a1b94783545a2f6bbefd826ee4ff922b6d9f97a8e74071d34564b5ebab3ee45",
+    ".claude/hooks/enforce-sandbox.js": "sha256:71510ec5bc4a931920fd648d782b24fd454848496fe5f1cf8d24db0af7917cc4",
+    ".claude/hooks/format.js": "sha256:b94250342969deb4be85b55e2f18186bca72c3a7545059cfcc822cb6c52ee326",
+    ".claude/hooks/manifests.js": "sha256:79c1b833979156a557204098c4c849af0ffe3cd7d5a44921c17b50858a52c3ff",
+    ".claude/hooks/overrides.js": "sha256:bfdb7bf5883b7a75a5b920999555a0deca70dfbb00d85257123f68758156d819",
+    ".claude/hooks/package-family.js": "sha256:465f843a9e61091dd9fb773a30821eed49698ab68066f77ba7cae7395d5735af",
+    ".claude/hooks/payload.js": "sha256:77dd73e588fdfb9889bbb90010587a759831308fadfe9643edfb73984b0e5569",
+    ".claude/hooks/rules.js": "sha256:d2fd2526fd87e1d300b0b319e53e188e7b42415a45fcf3b139cd5a5119859576",
+    ".claude/hooks/session-prime.js": "sha256:68bc58c9064f64241e8d9a7bb153bdc2492d2bfd7d76273b527f7b5dac066572",
+    ".claude/launch.json": "sha256:89d55fd516ecf5f7d05799886e061c240ad4fd6385add352d494e48b4c646343",
+    ".claude/skills/build-component-options/SKILL.md": "sha256:d31d1504090363141550bad528f5c60b99a79563e64a13ae403c0014bdf14ad4",
+    ".claude/skills/create-pr/SKILL.md": "sha256:0b63f6849bc314889a88920f4c199a53eab6f9042014218e3e1677d81b03742b",
+    ".claude/skills/updating-intapp-app/SKILL.md": "sha256:5e27c64d66c2edc37483635266ec12c1f9edbdb81fd31400ea4c2d21023ed1a8",
+    "azure-pipelines.yml": "sha256:7072d0b5e270b1423c8242af69fe3e98f99bc07efd82c2b8fbf9ce4ef0151143",
+    "eslint.config.mjs": "sha256:0641ef09dbabe36e73ce0889f76bf135ac1b47d260661092bc38337c830b3eb7",
+    "lint/eslint-rules/index.js": "sha256:2dffaac40bd0676ba1ae324b54d7fb5130dc341f06ff014eeb1bfd1a58b64cdc",
+    "lint/eslint-rules/no-raw-interactive-elements.js": "sha256:d499f3309e1016b32f41b72400f69b4f8d96b4c342ae2742f434eabc26dd8975",
+    "lint/eslint-rules/package.json": "sha256:666542b48896566060444aa85497a6df16586c90aea334a3f03700a53738327f",
+    "lint/eslint-rules/uds-component-naming.js": "sha256:9373facb102e2584f7462a8878a6cf45aae248cf71488ad2c08ee2d03cfe6f0e",
+    "lint/eslint-rules/valid-ids-icon-name.js": "sha256:bd4f6b794ee306bdd50547ffac329242625673c292a6500941223c31b6510366",
+    "scripts/audit-overrides.js": "sha256:be566e291c440a598420e144d83e0f65fb1dbc6b532b314df7dfacce44500310",
+    "scripts/check-ids-updates.js": "sha256:3ca0d0b28df20f9ec6b1999514556286707ba68f5bda5b7cb541a23a28736e7e",
+    "scripts/check-template-updates.js": "sha256:3ecc885adc0947d7fa6777dcf16e4fe6e72d3e3942dbb9c06e1da0885f30047b",
+    "scripts/setup-pipeline.js": "sha256:b5225d444118b7dc9cc57bbdc708228e3521c61b3095d9d500fd854dbc766cf4",
+    "scripts/setup-repo.js": "sha256:3bda69defe0cb1626f75190dc060d94d378a5715861a3b70e8595e5732f72607",
+    "stylelint.config.js": "sha256:cbf1d2d1b6db8e166badc076c626ac22ef8a77ca41ea2e6f96d27dfd987ded1d"
+  }
+}
