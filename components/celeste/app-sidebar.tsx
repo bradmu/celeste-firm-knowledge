@@ -84,7 +84,7 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="none"
-      className="h-screen w-[253px] border-r border-sidebar-border bg-sidebar"
+      className="sticky top-0 h-screen w-[253px] shrink-0 self-start border-r border-sidebar-border bg-sidebar"
     >
       <SidebarHeader className="px-3 pt-2 pb-7">
         <SidebarMenu>
