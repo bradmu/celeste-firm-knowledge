@@ -1,24 +1,28 @@
-# IDS (Intapp Design System) — STRICT MODE
+# Celeste Firm Knowledge — Prototype
 
-This project enforces IDS via a PreToolUse hook (`.claude/hooks/check-ids.js`)
-and ESLint + Stylelint. **Never** invent styles, components, or icons. If you
-need something not in the docs below, ASK — do not guess.
+This is a prototype. It does **not** enforce the Intapp Design System (IDS).
+The IDS PreToolUse hook is disabled in `.claude/settings.json`.
 
-@node_modules/@ids/react-next/claude/docs/using-uds-react-next.md
-@node_modules/@ids/styles/claude/docs/using-uds-styles.md
-@node_modules/@ids/tokens/claude/docs/using-uds-tokens.md
+## What to use
 
-## Workflows
+- **shadcn/ui** components from `components/ui/` (configured via `components.json`,
+  style: `radix-nova`, base color: `neutral`, icons: `lucide-react`).
+  Add new ones with `npx shadcn@latest add <component>`.
+- **Tailwind CSS v4** for styling. Tokens/variables live in `app/globals.css`.
+- **Uploaded design files** (Figma exports, screenshots, mockups the user shares
+  in chat) are the source of truth for layout, spacing, and visual style. Match
+  them as closely as the available shadcn primitives allow.
+- Custom prototype components belong in `components/celeste/`.
 
-- Building a component pattern? See `.claude/skills/build-component-options/SKILL.md`.
-- Upgrading an `@ids/*` package? See `.claude/commands/upgrade-uds.md`.
-- Auditing accumulated overrides? Run `npm run lint:overrides`.
+## What NOT to use
 
-## Override policy
+- Do not import from `@ids/*` packages.
+- Do not reference `UdsX` components, IDS tokens, or the IDS icon set.
+- Ignore any `.claude/skills/build-component-options` or `upgrade-uds` workflows —
+  those are IDS-specific.
 
-If you genuinely need to bypass an IDS rule, use:
-- `// ids-allow: <reason>` on the same line, or
-- `// ids-allow-file: <reason>` at the top of the file.
+## When a design is ambiguous
 
-You **must** confirm with the user before adding any override. Stating: what
-you want to override, why, and at which scope. Wait for approval.
+If an uploaded design shows something shadcn doesn't have a primitive for, ask
+before inventing a component. Prefer composing existing shadcn pieces over
+building custom ones from scratch.

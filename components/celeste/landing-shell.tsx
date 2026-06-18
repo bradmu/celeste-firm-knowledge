@@ -3,17 +3,6 @@ import { ArrowUpRight, NotepadText } from 'lucide-react';
 import { ChatLauncher } from './chat-launcher';
 import { MoonGlyph } from './moon-glyph';
 import { PromptCard, type PromptCardProps } from './prompt-card';
-import { PrototypeGuide } from './prototype-guide';
-
-/**
- * Composition wrapper for the landing page. PrototypeGuide and
- * ChatLauncher are now fully decoupled — the guide's "Copy example
- * prompt" button writes to the clipboard and focuses the textarea via
- * DOM, so this shell can stay a plain server-renderable arrangement
- * with no shared state.
- *
- * Card data is co-located here so the page can stay a thin shell.
- */
 
 const AGENT_CARDS: PromptCardProps[] = [
   {
@@ -87,10 +76,6 @@ export function LandingShell() {
           ))}
         </div>
       </section>
-
-      <div className="w-full pt-6">
-        <PrototypeGuide />
-      </div>
     </div>
   );
 }
