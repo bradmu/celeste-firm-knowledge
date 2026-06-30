@@ -1,20 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+
+import { useAdminSubNavLayout } from './use-admin-subnav-layout';
 import {
   ArrowLeft,
+  Blocks,
   ChevronDown,
   CirclePlay,
   CirclePlus,
   Database,
+  Inbox,
   Layers,
   MessageSquare,
   PanelLeftClose,
   Plug,
   Settings2,
+  Sparkles,
   Users,
-  Workflow,
   Wrench,
   Zap,
   type LucideIcon,
@@ -39,8 +43,11 @@ type NavItem = { label: string; icon: LucideIcon; href: string };
 const PRIMARY_NAV: NavItem[] = [
   { label: 'New chat', icon: CirclePlus, href: '/' },
   { label: 'Chats', icon: MessageSquare, href: '/' },
-  { label: 'Playbooks', icon: CirclePlay, href: '/' },
-  { label: 'Skills', icon: Workflow, href: '/' },
+  { label: 'Inbox', icon: Inbox, href: '/' },
+  { label: 'Playbooks', icon: CirclePlay, href: '/playbooks' },
+  { label: 'Automations', icon: Zap, href: '/automations' },
+  { label: 'Skills', icon: Blocks, href: '/' },
+  { label: 'Coworkers', icon: Sparkles, href: '/' },
   { label: 'Admin', icon: Wrench, href: '/admin' },
 ];
 
@@ -75,11 +82,67 @@ const RECENT_GROUPS: { heading: string; items: { label: string; selected?: boole
 const PANEL_BASE =
   'transition-[opacity,translate] duration-300 ease-out [grid-area:1/1] data-[active=false]:pointer-events-none';
 
+function SubNavLayoutToggle({
+  value,
+  onChange,
+}: {
+  value: 'A' | 'B';
+  onChange: (v: 'A' | 'B') => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Admin sub-nav layout"
+      className="flex h-8 items-center rounded-md border border-border bg-card p-0.5"
+    >
+      <button
+        type="button"
+        aria-label="Layout A · flat sub-nav"
+        data-active={value === 'A' || undefined}
+        onClick={() => onChange('A')}
+        className="flex h-7 flex-1 items-center justify-center rounded text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground"
+      >
+        Layout A
+      </button>
+      <button
+        type="button"
+        aria-label="Layout B · nested sub-nav"
+        data-active={value === 'B' || undefined}
+        onClick={() => onChange('B')}
+        className="flex h-7 flex-1 items-center justify-center rounded text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground"
+      >
+        Layout B
+      </button>
+    </div>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname() ?? '/';
+  const searchParams = useSearchParams();
   const variant: 'main' | 'admin' = pathname.startsWith('/admin') ? 'admin' : 'main';
-  const activeAdmin = 'Firm Knowledge';
-  const activePrimary = variant === 'admin' ? 'Admin' : 'New chat';
+  const [subNavLayout, setSubNavLayout] = useAdminSubNavLayout();
+  const tabParam = searchParams?.get('tab');
+  const activeSchemaTab: 'hubs' | 'schemas' | 'redaction' | 'overview' =
+    tabParam === 'schemas'
+      ? 'schemas'
+      : tabParam === 'redaction'
+        ? 'redaction'
+        : tabParam === 'hubs'
+          ? 'hubs'
+          : 'overview';
+  const activeAdmin =
+    subNavLayout === 'B' && pathname === '/admin' && activeSchemaTab !== 'overview'
+      ? ''
+      : 'Firm Knowledge';
+  const activePrimary =
+    variant === 'admin'
+      ? 'Admin'
+      : pathname.startsWith('/playbooks')
+        ? 'Playbooks'
+        : pathname.startsWith('/automations')
+          ? 'Automations'
+          : 'New chat';
 
   return (
     <Sidebar
@@ -194,19 +257,71 @@ export function AppSidebar() {
               <SidebarMenu>
                 {ADMIN_NAV.map((item) => {
                   const active = item.label === activeAdmin;
+                  const isFirmKnowledge = item.label === 'Firm Knowledge';
                   return (
-                    <SidebarMenuItem key={item.label}>
-                      <SidebarMenuButton
-                        asChild
-                        className="h-8 gap-2 px-2 py-2 text-sm font-normal text-sidebar-foreground hover:bg-sidebar-accent"
-                        data-active={active || undefined}
-                      >
-                        <Link href={item.href}>
-                          <item.icon className="size-4" />
-                          <span>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    <div key={item.label}>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          className="h-8 gap-2 px-2 py-2 text-sm font-normal text-sidebar-foreground hover:bg-sidebar-accent"
+                          data-active={active || undefined}
+                        >
+                          <Link href={item.href}>
+                            <item.icon className="size-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      {isFirmKnowledge && subNavLayout === 'B' ? (
+                        <SidebarMenu className="mt-1 ml-6 gap-0.5 border-l border-border/60 pl-2">
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              asChild
+                              className="h-7 gap-2 px-2 py-1.5 text-xs font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                              data-active={
+                                pathname === '/admin' && activeSchemaTab === 'hubs'
+                                  ? true
+                                  : undefined
+                              }
+                            >
+                              <Link href="/admin?tab=hubs">
+                                <span>Knowledge hubs</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              asChild
+                              className="h-7 gap-2 px-2 py-1.5 text-xs font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                              data-active={
+                                pathname === '/admin' && activeSchemaTab === 'schemas'
+                                  ? true
+                                  : undefined
+                              }
+                            >
+                              <Link href="/admin?tab=schemas">
+                                <span>Document schemas</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          <SidebarMenuItem>
+                            <SidebarMenuButton
+                              asChild
+                              className="h-7 gap-2 px-2 py-1.5 text-xs font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                              data-active={
+                                pathname === '/admin' && activeSchemaTab === 'redaction'
+                                  ? true
+                                  : undefined
+                              }
+                            >
+                              <Link href="/admin?tab=redaction">
+                                <span>Redaction</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        </SidebarMenu>
+                      ) : null}
+                    </div>
                   );
                 })}
               </SidebarMenu>
@@ -215,7 +330,10 @@ export function AppSidebar() {
         </div>
       </SidebarContent>
 
-      <SidebarFooter className="px-2 py-2">
+      <SidebarFooter className="flex flex-col gap-2 border-t border-sidebar-border/40 px-2 py-2">
+        {variant === 'admin' ? (
+          <SubNavLayoutToggle value={subNavLayout} onChange={setSubNavLayout} />
+        ) : null}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton

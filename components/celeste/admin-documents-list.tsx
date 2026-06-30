@@ -3,6 +3,11 @@
 import {
   ArrowLeft,
   ArrowUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Download,
   Filter,
   MoreVertical,
@@ -17,16 +22,22 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { RowCheckbox } from '@/components/celeste/row-checkbox';
 import { StackedToolbar } from '@/components/celeste/stacked-toolbar';
 
-type DocStatus =
+export type DocStatus =
   | { kind: 'active' }
   | { kind: 'in-review' }
   | { kind: 'processing'; progress: number }
   | { kind: 'failed' };
 
-type Document = {
+export type Document = {
   id: string;
   title: string;
   docType: string;
@@ -35,7 +46,39 @@ type Document = {
   status: DocStatus;
 };
 
-const DOCUMENTS: Document[] = [
+export const DOCUMENTS: Document[] = [
+  {
+    id: 'a1',
+    title: 'Q3 CIM — Acme Corp Holdings.pdf',
+    docType: 'Confidential information memorandum',
+    date: 'Mar 14, 2026',
+    uploader: 'Bruce Tucker',
+    status: { kind: 'processing', progress: 15 },
+  },
+  {
+    id: 'a2',
+    title: 'NDA — Globex Holdings.docx',
+    docType: 'Non disclosure agreement',
+    date: 'Mar 14, 2026',
+    uploader: 'Lynne Daniels',
+    status: { kind: 'failed' },
+  },
+  {
+    id: 'a3',
+    title: 'Teaser — Initech Capital.pdf',
+    docType: 'Teaser',
+    date: 'Mar 13, 2026',
+    uploader: 'Darnell Jones',
+    status: { kind: 'failed' },
+  },
+  {
+    id: 'a4',
+    title: 'Memo — Hooli Capital.docx',
+    docType: 'Offering memorandum',
+    date: 'Mar 12, 2026',
+    uploader: 'Ming Zao',
+    status: { kind: 'in-review' },
+  },
   {
     id: '1',
     title: 'Meridian Capital Partners IV — Private Placement Memorandum',
@@ -291,7 +334,9 @@ function DocumentSelectionBar({
   );
 }
 
-function DocumentsTable({
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
+
+export function DocumentsTable({
   selected,
   onToggle,
   onToggleAll,
@@ -300,10 +345,18 @@ function DocumentsTable({
   onToggle: (id: string) => void;
   onToggleAll: () => void;
 }) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const total = DOCUMENTS.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const visible = DOCUMENTS.slice(start, start + pageSize);
   const allSelected = selected.size === DOCUMENTS.length;
   const someSelected = selected.size > 0 && !allSelected;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border bg-card shadow-xs">
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
+      <div className="overflow-x-auto">
       <table className="w-full min-w-[1120px] table-fixed text-left text-sm">
         <colgroup>
           <col style={{ width: '44px' }} />
@@ -333,7 +386,7 @@ function DocumentsTable({
           </tr>
         </thead>
         <tbody>
-          {DOCUMENTS.map((doc) => (
+          {visible.map((doc) => (
             <tr
               key={doc.id}
               data-selected={selected.has(doc.id) || undefined}
@@ -384,7 +437,121 @@ function DocumentsTable({
           ))}
         </tbody>
       </table>
+      </div>
+      <TablePagination
+        total={total}
+        page={safePage}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+      />
     </div>
+  );
+}
+
+function TablePagination({
+  total,
+  page,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  total: number;
+  page: number;
+  pageSize: number;
+  onPageChange: (p: number) => void;
+  onPageSizeChange: (s: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+  const atFirst = page <= 1;
+  const atLast = page >= totalPages;
+  return (
+    <div className="flex items-center justify-between border-t border-border bg-background/40 px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Rows per page</span>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" data-icon="inline-end" className="min-w-[64px]">
+              {pageSize}
+              <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {PAGE_SIZE_OPTIONS.map((opt) => (
+              <DropdownMenuItem key={opt} onClick={() => onPageSizeChange(opt)}>
+                {opt}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="flex items-center gap-4">
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {start.toLocaleString()}–{end.toLocaleString()} of {total.toLocaleString()}
+        </span>
+        <div className="flex items-center gap-1">
+          <PaginationButton
+            aria-label="First page"
+            disabled={atFirst}
+            onClick={() => onPageChange(1)}
+          >
+            <ChevronsLeft className="size-4" />
+          </PaginationButton>
+          <PaginationButton
+            aria-label="Previous page"
+            disabled={atFirst}
+            onClick={() => onPageChange(page - 1)}
+          >
+            <ChevronLeft className="size-4" />
+          </PaginationButton>
+          <span className="px-2 text-xs text-muted-foreground tabular-nums">
+            Page {page} of {totalPages}
+          </span>
+          <PaginationButton
+            aria-label="Next page"
+            disabled={atLast}
+            onClick={() => onPageChange(page + 1)}
+          >
+            <ChevronRight className="size-4" />
+          </PaginationButton>
+          <PaginationButton
+            aria-label="Last page"
+            disabled={atLast}
+            onClick={() => onPageChange(totalPages)}
+          >
+            <ChevronsRight className="size-4" />
+          </PaginationButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PaginationButton({
+  children,
+  disabled,
+  onClick,
+  ...rest
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="flex h-7 w-7 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-background hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+      {...rest}
+    >
+      {children}
+    </button>
   );
 }
 

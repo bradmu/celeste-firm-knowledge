@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowUp,
   ArrowUpRight,
+  ArrowRight,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -14,6 +15,7 @@ import {
   Filter,
   FileX,
   Info,
+  Layers,
   LayoutGrid,
   Minus,
   MoreVertical,
@@ -22,7 +24,9 @@ import {
   Power,
   PowerOff,
   Search,
+  Shield,
   ShieldAlert,
+  Sparkles,
   Table as TableIcon,
   Trash2,
   TrendingUp,
@@ -30,14 +34,16 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DocumentsTable, DOCUMENTS } from '@/components/celeste/admin-documents-list';
 import { RowCheckbox } from '@/components/celeste/row-checkbox';
 import { StackedToolbar } from '@/components/celeste/stacked-toolbar';
+import { useAdminSubNavLayout } from '@/components/celeste/use-admin-subnav-layout';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -420,6 +426,57 @@ const HUB_USAGE_METRICS: UsageMetric[] = [
   },
 ];
 
+type UsageHighlight = UsageMetric & { annotation: string };
+
+const HUB_USAGE_HIGHLIGHTS: UsageHighlight[] = [
+  {
+    label: 'Citations from hubs',
+    value: '1,094',
+    delta: '+12%',
+    data: [20, 30, 28, 42, 38, 55, 50],
+    annotation: 'Bump came from Best in Class IOIs — cited 4× more than the next hub.',
+  },
+  {
+    label: 'Queries to hubs',
+    value: '2,847',
+    delta: '+18%',
+    data: [30, 45, 38, 60, 52, 75, 68],
+    annotation: 'Monday alone accounted for 38% of this week’s queries.',
+  },
+  {
+    label: 'Avg docs cited per query',
+    value: '3.4',
+    delta: '+0.4',
+    data: [25, 28, 30, 32, 30, 36, 34],
+    annotation: 'Chats are pulling broader context per question.',
+  },
+];
+
+const SCHEMA_USAGE_HIGHLIGHTS: UsageHighlight[] = [
+  {
+    label: 'Documents extracted',
+    value: '4,367',
+    delta: '+12%',
+    data: [22, 30, 28, 65, 80, 55, 48],
+    annotation: 'Strongest throughput week this quarter — V4 CIM doing the heavy lifting.',
+  },
+  {
+    label: 'Avg processing time',
+    value: '3.2 min',
+    delta: '+1.6 min',
+    deltaTone: 'destructive',
+    data: [40, 35, 45, 30, 50, 45, 55],
+    annotation: 'Management Presentation runs are pulling the average up.',
+  },
+  {
+    label: 'Processing failures',
+    value: '42',
+    delta: '-7',
+    data: [30, 50, 35, 60, 40, 55, 45],
+    annotation: 'Back to baseline after last month’s PDF parser update.',
+  },
+];
+
 type AttentionItem = {
   document: string;
   schema: string;
@@ -468,12 +525,39 @@ export function AdminKnowledgeHubs() {
   const searchParams = useSearchParams();
   const initialTab = searchParams?.get('tab') === 'schemas' ? 'schemas' : 'hubs';
   const [tab, setTab] = useState<'hubs' | 'schemas'>(initialTab);
+  const [subNavLayout] = useAdminSubNavLayout();
+  const initialView = searchParams?.get('view') ?? null;
+  useEffect(() => {
+    const urlTab = searchParams?.get('tab') === 'schemas' ? 'schemas' : 'hubs';
+    setTab(urlTab);
+    const view = searchParams?.get('view');
+    if (urlTab === 'hubs') {
+      setHubsInnerTab(view === 'list' ? 'list' : 'activity');
+    } else {
+      setSchemasInnerTab(
+        view === 'list' ? 'list' : view === 'documents' ? 'documents' : 'activity',
+      );
+    }
+  }, [searchParams]);
   const [layout, setLayout] = useState<'grid' | 'table'>('grid');
   const [moduleTab, setModuleTab] = useState<ModuleTab>('issues');
   const [overviewCollapsed, setOverviewCollapsed] = useState(false);
   const [hubModuleTab, setHubModuleTab] = useState<HubModuleTab>('hub-issues');
   const [hubOverviewCollapsed, setHubOverviewCollapsed] = useState(false);
   const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
+  const [hubsInnerTab, setHubsInnerTab] = useState<'activity' | 'list'>(
+    initialView === 'list' ? 'list' : 'activity',
+  );
+  const [schemasInnerTab, setSchemasInnerTab] = useState<
+    'activity' | 'list' | 'documents'
+  >(
+    initialView === 'list'
+      ? 'list'
+      : initialView === 'documents'
+        ? 'documents'
+        : 'activity',
+  );
+  const [docSelection, setDocSelection] = useState<Set<string>>(new Set());
 
   const toggleSchema = (name: string) => {
     setSelectedSchemas((prev) => {
@@ -492,117 +576,237 @@ export function AdminKnowledgeHubs() {
 
   const clearSchemaSelection = () => setSelectedSchemas(new Set());
 
+  if (subNavLayout === 'B') {
+    const tabParam = searchParams?.get('tab');
+    if (tabParam === 'redaction') {
+      return <RedactionLayoutB />;
+    }
+    if (!tabParam || (tabParam !== 'hubs' && tabParam !== 'schemas')) {
+      return <FirmKnowledgeLanding />;
+    }
+  }
+
   return (
     <div className="flex w-full max-w-[1140px] flex-col">
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'hubs' | 'schemas')}>
-        <div className="flex justify-center pb-5">
-          <TabsList className="h-8 bg-accent p-[3px]">
-            <TabsTrigger value="hubs" className="px-4">
-              Knowledge hubs
-            </TabsTrigger>
-            <TabsTrigger value="schemas" className="px-4">
-              Document schemas
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        {subNavLayout === 'A' ? (
+          <div className="flex justify-center pb-5">
+            <TabsList className="h-8 bg-accent p-[3px]">
+              <TabsTrigger value="hubs" className="px-4">
+                Knowledge hubs
+              </TabsTrigger>
+              <TabsTrigger value="schemas" className="px-4">
+                Document schemas
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        ) : null}
 
         <TabsContent value="hubs" className="flex flex-col gap-5">
-          <div className="flex items-end justify-between gap-4">
-            <PageHeader
-              title="Knowledge hubs"
-              subtitle="Curate document collections that ground chat responses — and keep an eye on where curation is breaking down"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setHubOverviewCollapsed((c) => !c)}
-              aria-expanded={!hubOverviewCollapsed}
-              aria-controls="hubs-overview"
-              data-icon="inline-end"
-              className="shrink-0"
-            >
-              {hubOverviewCollapsed ? 'Show overview' : 'Hide overview'}
-              {hubOverviewCollapsed ? <ChevronDown /> : <ChevronUp />}
-            </Button>
-          </div>
-          {!hubOverviewCollapsed ? (
-            <div id="hubs-overview" className="mb-3 flex flex-col gap-0">
-              <KpiTiles
-                tiles={HUB_KPIS}
-                value={hubModuleTab}
-                onChange={(v) => setHubModuleTab(v as HubModuleTab)}
+          {subNavLayout === 'B' ? (
+            <>
+              <PageHeader
+                title="Knowledge hubs"
+                subtitle="Organize indexed documents into collections for chats"
               />
-              <div className="pt-5">
-                {hubModuleTab === 'hub-issues' && <HubAttention />}
-                {hubModuleTab === 'hub-citation' && <HubCitation />}
-                {hubModuleTab === 'hub-usage' && <HubUsage />}
+              <InnerTabs
+                tabs={[
+                  { value: 'activity', label: 'Activity' },
+                  { value: 'list', label: `Hubs (${HUBS.length})` },
+                ]}
+                value={hubsInnerTab}
+                onChange={setHubsInnerTab}
+              />
+              {hubsInnerTab === 'activity' ? (
+                <HubsActivity />
+              ) : (
+                <>
+                  <Toolbar
+                    layout={layout}
+                    onLayoutChange={setLayout}
+                    primaryActionLabel="Add new"
+                    searchAriaLabel="Search knowledge hubs"
+                  />
+                  <section aria-label="Knowledge hubs" className="grid grid-cols-2 gap-4">
+                    {HUBS.map((hub) => (
+                      <KnowledgeHubCard key={hub.title} hub={hub} />
+                    ))}
+                  </section>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-end justify-between gap-4">
+                <PageHeader
+                  title="Knowledge hubs"
+                  subtitle="Curate document collections that ground chat responses — and keep an eye on where curation is breaking down"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setHubOverviewCollapsed((c) => !c)}
+                  aria-expanded={!hubOverviewCollapsed}
+                  aria-controls="hubs-overview"
+                  data-icon="inline-end"
+                  className="shrink-0"
+                >
+                  {hubOverviewCollapsed ? 'Show overview' : 'Hide overview'}
+                  {hubOverviewCollapsed ? <ChevronDown /> : <ChevronUp />}
+                </Button>
               </div>
-            </div>
-          ) : null}
-          <Toolbar
-            layout={layout}
-            onLayoutChange={setLayout}
-            primaryActionLabel="Add new"
-            searchAriaLabel="Search knowledge hubs"
-          />
-          <section aria-label="Knowledge hubs" className="grid grid-cols-2 gap-4">
-            {HUBS.map((hub) => (
-              <KnowledgeHubCard key={hub.title} hub={hub} />
-            ))}
-          </section>
+              {!hubOverviewCollapsed ? (
+                <div id="hubs-overview" className="mb-3 flex flex-col gap-0">
+                  <KpiTiles
+                    tiles={HUB_KPIS}
+                    value={hubModuleTab}
+                    onChange={(v) => setHubModuleTab(v as HubModuleTab)}
+                  />
+                  <div className="pt-5">
+                    {hubModuleTab === 'hub-issues' && <HubAttention />}
+                    {hubModuleTab === 'hub-citation' && <HubCitation />}
+                    {hubModuleTab === 'hub-usage' && <HubUsage />}
+                  </div>
+                </div>
+              ) : null}
+              <Toolbar
+                layout={layout}
+                onLayoutChange={setLayout}
+                primaryActionLabel="Add new"
+                searchAriaLabel="Search knowledge hubs"
+              />
+              <section aria-label="Knowledge hubs" className="grid grid-cols-2 gap-4">
+                {HUBS.map((hub) => (
+                  <KnowledgeHubCard key={hub.title} hub={hub} />
+                ))}
+              </section>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="schemas" className="flex flex-col gap-5">
-          <div className="flex items-end justify-between gap-4">
-            <PageHeader
-              title="Document schemas"
-              subtitle="Track how your firm is using ontologies for document types and where extraction is breaking down"
-            />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setOverviewCollapsed((c) => !c)}
-              aria-expanded={!overviewCollapsed}
-              aria-controls="schemas-overview"
-              data-icon="inline-end"
-              className="shrink-0"
-            >
-              {overviewCollapsed ? 'Show overview' : 'Hide overview'}
-              {overviewCollapsed ? <ChevronDown /> : <ChevronUp />}
-            </Button>
-          </div>
-          {!overviewCollapsed ? (
-            <div id="schemas-overview" className="flex flex-col gap-0 mb-3">
-              <KpiTiles
-              tiles={KPIS}
-              value={moduleTab}
-              onChange={(v) => setModuleTab(v as ModuleTab)}
-            />
-              <div className="pt-5">
-                {moduleTab === 'issues' && <NeedsAttention />}
-                {moduleTab === 'coverage' && <SchemaCoverage />}
-                {moduleTab === 'usage' && <UsageMetrics />}
+          {subNavLayout === 'B' ? (
+            <>
+              <PageHeader
+                title="Document schemas"
+                subtitle="Track how your firm is using ontologies for document types"
+              />
+              <InnerTabs
+                tabs={[
+                  { value: 'activity', label: 'Activity' },
+                  { value: 'list', label: `Schemas (${SCHEMAS.length})` },
+                  { value: 'documents', label: 'Documents (1,191)' },
+                ]}
+                value={schemasInnerTab}
+                onChange={setSchemasInnerTab}
+              />
+              {schemasInnerTab === 'activity' ? <SchemasActivity /> : null}
+              {schemasInnerTab === 'list' ? (
+                <>
+                  <StackedToolbar
+                    countLabel={`${SCHEMAS.length} schemas`}
+                    primaryLabel="New schema"
+                    searchAriaLabel="Search document schemas"
+                    layout={layout}
+                    onLayoutChange={setLayout}
+                  />
+                  {selectedSchemas.size > 0 ? (
+                    <SchemaSelectionBar
+                      count={selectedSchemas.size}
+                      onClear={clearSchemaSelection}
+                    />
+                  ) : null}
+                  <SchemasTable
+                    selected={selectedSchemas}
+                    onToggle={toggleSchema}
+                    onToggleAll={toggleAllSchemas}
+                  />
+                </>
+              ) : null}
+              {schemasInnerTab === 'documents' ? (
+                <>
+                  <StackedToolbar
+                    countLabel="1,191 documents"
+                    primaryLabel="Upload documents"
+                    searchAriaLabel="Search documents"
+                    layout={layout}
+                    onLayoutChange={setLayout}
+                  />
+                  <DocumentsTable
+                    selected={docSelection}
+                    onToggle={(id) =>
+                      setDocSelection((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(id)) next.delete(id);
+                        else next.add(id);
+                        return next;
+                      })
+                    }
+                    onToggleAll={() =>
+                      setDocSelection((prev) =>
+                        prev.size === DOCUMENTS.length
+                          ? new Set()
+                          : new Set(DOCUMENTS.map((d) => d.id)),
+                      )
+                    }
+                  />
+                </>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="flex items-end justify-between gap-4">
+                <PageHeader
+                  title="Document schemas"
+                  subtitle="Track how your firm is using ontologies for document types and where extraction is breaking down"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setOverviewCollapsed((c) => !c)}
+                  aria-expanded={!overviewCollapsed}
+                  aria-controls="schemas-overview"
+                  data-icon="inline-end"
+                  className="shrink-0"
+                >
+                  {overviewCollapsed ? 'Show overview' : 'Hide overview'}
+                  {overviewCollapsed ? <ChevronDown /> : <ChevronUp />}
+                </Button>
               </div>
-            </div>
-          ) : null}
-          <StackedToolbar
-            countLabel={`${SCHEMAS.length} schemas`}
-            primaryLabel="New schema"
-            searchAriaLabel="Search document schemas"
-            layout={layout}
-            onLayoutChange={setLayout}
-          />
-          {selectedSchemas.size > 0 ? (
-            <SchemaSelectionBar
-              count={selectedSchemas.size}
-              onClear={clearSchemaSelection}
-            />
-          ) : null}
-          <SchemasTable
-            selected={selectedSchemas}
-            onToggle={toggleSchema}
-            onToggleAll={toggleAllSchemas}
-          />
+              {!overviewCollapsed ? (
+                <div id="schemas-overview" className="flex flex-col gap-0 mb-3">
+                  <KpiTiles
+                    tiles={KPIS}
+                    value={moduleTab}
+                    onChange={(v) => setModuleTab(v as ModuleTab)}
+                  />
+                  <div className="pt-5">
+                    {moduleTab === 'issues' && <NeedsAttention />}
+                    {moduleTab === 'coverage' && <SchemaCoverage />}
+                    {moduleTab === 'usage' && <UsageMetrics />}
+                  </div>
+                </div>
+              ) : null}
+              <StackedToolbar
+                countLabel={`${SCHEMAS.length} schemas`}
+                primaryLabel="New schema"
+                searchAriaLabel="Search document schemas"
+                layout={layout}
+                onLayoutChange={setLayout}
+              />
+              {selectedSchemas.size > 0 ? (
+                <SchemaSelectionBar
+                  count={selectedSchemas.size}
+                  onClear={clearSchemaSelection}
+                />
+              ) : null}
+              <SchemasTable
+                selected={selectedSchemas}
+                onToggle={toggleSchema}
+                onToggleAll={toggleAllSchemas}
+              />
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
@@ -615,6 +819,415 @@ function PageHeader({ title, subtitle }: { title: string; subtitle: string }) {
       <h1 className="font-serif text-2xl font-semibold leading-tight text-foreground">{title}</h1>
       <p className="font-serif text-sm leading-5 text-muted-foreground">{subtitle}</p>
     </header>
+  );
+}
+
+function InnerTabs<T extends string>({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex justify-center pt-2 pb-0">
+      <div
+        role="tablist"
+        aria-label="Page view"
+        className="flex h-10 items-center rounded-lg bg-accent p-1"
+      >
+        {tabs.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            role="tab"
+            aria-selected={value === t.value}
+            onClick={() => onChange(t.value)}
+            data-active={value === t.value || undefined}
+            className="flex h-8 min-w-[140px] items-center justify-center rounded-md px-8 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-xs"
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActivityPanel({
+  title,
+  subtitle,
+  rightSlot,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  rightSlot?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-5 rounded-lg border border-border bg-card p-6 shadow-xs">
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          {subtitle ? (
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          ) : null}
+        </div>
+        {rightSlot}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+const TIME_RANGES = [
+  'Past 7 days',
+  'Past 30 days',
+  'Past 90 days',
+  'Past 12 months',
+  'All time',
+] as const;
+type TimeRange = (typeof TIME_RANGES)[number];
+
+function ActivityTimeRange({
+  value,
+  onChange,
+}: {
+  value: TimeRange;
+  onChange: (v: TimeRange) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">Showing</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" data-icon="inline-end">
+            {value}
+            <ChevronDown />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          {TIME_RANGES.map((opt) => (
+            <DropdownMenuItem key={opt} onClick={() => onChange(opt)}>
+              {opt}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
+function ViewDetailLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+    >
+      {label}
+      <ArrowUpRight className="size-3" />
+    </Link>
+  );
+}
+
+function HubsActivity() {
+  const [range, setRange] = useState<TimeRange>('Past 30 days');
+  return (
+    <div className="ml-14 flex flex-col">
+      <ActivityTimeRange value={range} onChange={setRange} />
+      <div className="flex flex-col gap-7 pt-3">
+      <div className="w-full max-w-[760px]">
+      <ActivityPanel
+        title="Hubs with issues"
+        subtitle="Hubs that are currently having some kind of problem"
+        rightSlot={
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="bg-secondary text-foreground">
+              {HUB_ATTENTION.length}
+            </Badge>
+            <ViewDetailLink href="/admin?tab=hubs" label="View all hubs" />
+          </div>
+        }
+      >
+        <ul className="flex flex-col divide-y divide-border rounded-md border border-border overflow-hidden">
+          {HUB_ATTENTION.map((item) => {
+            const toneText =
+              item.tone === 'destructive' ? 'text-destructive' : 'text-[#b45309]';
+            return (
+              <li
+                key={item.hub}
+                className="group/item flex items-center gap-3 bg-background px-4 py-3"
+              >
+                <span
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
+                    item.tone === 'destructive' ? 'bg-destructive/10' : 'bg-[#fef3c7]'
+                  }`}
+                >
+                  <item.icon className={`size-4 ${toneText}`} />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium text-foreground">{item.hub}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    <span className={toneText}>{item.issue}</span>{' '}
+                    <span className="text-foreground/30">·</span> {item.detail}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm">
+                  Review
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </ActivityPanel>
+      </div>
+
+      <div className="w-full max-w-[620px]">
+        <CitationSummary />
+      </div>
+
+      <div className="w-full max-w-[860px]">
+        <UsageHighlights metrics={HUB_USAGE_HIGHLIGHTS} />
+      </div>
+      </div>
+    </div>
+  );
+}
+
+function SchemasActivity() {
+  const [range, setRange] = useState<TimeRange>('Past 30 days');
+  return (
+    <div className="ml-14 flex flex-col">
+      <ActivityTimeRange value={range} onChange={setRange} />
+      <div className="flex flex-col gap-7 pt-3">
+      <div className="w-full max-w-[760px]">
+      <ActivityPanel
+        title="Documents with issues"
+        subtitle="Documents currently blocked or failing to extract"
+        rightSlot={
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="bg-secondary text-foreground">
+              {ATTENTION.length}
+            </Badge>
+            <ViewDetailLink href="/admin/issues" label="View all issues" />
+          </div>
+        }
+      >
+        <ul className="flex flex-col divide-y divide-border rounded-md border border-border overflow-hidden">
+          {ATTENTION.map((item) => {
+            const toneText =
+              item.tone === 'destructive' ? 'text-destructive' : 'text-[#b45309]';
+            return (
+              <li
+                key={item.document}
+                className="group/item flex items-center gap-3 bg-background px-4 py-3"
+              >
+                <span
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
+                    item.tone === 'destructive' ? 'bg-destructive/10' : 'bg-[#fef3c7]'
+                  }`}
+                >
+                  <item.icon className={`size-4 ${toneText}`} />
+                </span>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <p className="truncate text-sm font-medium text-foreground">{item.document}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {item.schema} <span className="text-foreground/30">·</span>{' '}
+                    <span className={toneText}>{item.issue}</span>{' '}
+                    <span className="text-foreground/30">·</span> {item.detail}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm">
+                  Review
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      </ActivityPanel>
+      </div>
+
+      <div className="w-full max-w-[760px]">
+        <SchemaImprovementStrip />
+      </div>
+
+      <div className="w-full max-w-[620px]">
+        <CoverageSummary />
+      </div>
+
+      <div className="w-full max-w-[860px]">
+        <UsageHighlights metrics={SCHEMA_USAGE_HIGHLIGHTS} />
+      </div>
+      </div>
+    </div>
+  );
+}
+
+function SchemaImprovementStrip() {
+  return (
+    <div
+      role="region"
+      aria-label="Schema improvement suggestion"
+      className="flex items-center gap-3 rounded-lg border border-[#f0d080] bg-[#fffbf0] px-4 py-3"
+    >
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[#fef3c7] text-[#b45309]">
+        <Sparkles className="size-4" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="text-sm font-medium text-foreground">
+          <span className="text-[#92400e]">Management Presentation</span> schema looks
+          underperforming
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          61% coverage · 7 documents flagged · Run the{' '}
+          <span className="font-medium text-foreground">Refine schema</span> skill to suggest
+          field-level improvements
+        </p>
+      </div>
+      <Button variant="ghost" size="sm" className="shrink-0 text-muted-foreground">
+        Dismiss
+      </Button>
+      <Button size="sm" data-icon="inline-start" className="shrink-0">
+        <Sparkles />
+        Run skill
+      </Button>
+    </div>
+  );
+}
+
+function CitationSummary() {
+  const strong = HUB_CITATION_DATA.filter((h) => h.citationRate >= 70).sort(
+    (a, b) => b.citationRate - a.citationRate,
+  )[0];
+  const weak = HUB_CITATION_DATA.filter((h) => h.citationRate < 40 && h.retrievals >= 200).sort(
+    (a, b) => b.retrievals - a.retrievals,
+  )[0];
+
+  return (
+    <ActivityPanel
+      title="Citation rate"
+      subtitle="How a hub’s docs are cited when surfaced as context in chats"
+      rightSlot={<ViewDetailLink href="/admin?tab=hubs" label="View citation analysis" />}
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
+        <div className="flex shrink-0 flex-col gap-1 sm:w-[180px]">
+          <span className="font-serif text-5xl leading-none font-semibold text-foreground tabular-nums">
+            {HUB_CITATION_OVERALL}%
+          </span>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {HUB_CITATION_TOTAL_CITED.toLocaleString()} of{' '}
+            {HUB_CITATION_TOTAL_RETRIEVALS.toLocaleString()} retrievals cited
+          </span>
+        </div>
+        <ul className="flex flex-1 flex-col gap-3">
+          {weak ? (
+            <li className="flex items-start gap-3 rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
+              <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                Misfiring
+              </span>
+              <p className="text-sm text-foreground">
+                <span className="font-medium">{weak.hub}</span>{' '}
+                <span className="text-muted-foreground">
+                  surfaced {weak.retrievals.toLocaleString()}× but cited only{' '}
+                  {weak.citationRate}% of the time.
+                </span>
+              </p>
+            </li>
+          ) : null}
+          {strong ? (
+            <li className="flex items-start gap-3 rounded-md border border-primary/20 bg-primary/[0.04] px-3 py-2.5">
+              <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                Strong
+              </span>
+              <p className="text-sm text-foreground">
+                <span className="font-medium">{strong.hub}</span>{' '}
+                <span className="text-muted-foreground">
+                  cited {strong.citationRate}% of the time across {strong.retrievals.toLocaleString()}{' '}
+                  retrievals.
+                </span>
+              </p>
+            </li>
+          ) : null}
+        </ul>
+      </div>
+    </ActivityPanel>
+  );
+}
+
+function CoverageSummary() {
+  const lowest = [...COVERAGE_DATA].sort((a, b) => a.coverage - b.coverage)[0];
+  const highest = [...COVERAGE_DATA].sort((a, b) => b.coverage - a.coverage)[0];
+
+  return (
+    <ActivityPanel
+      title="Coverage"
+      subtitle="How fully documents are populating their schema fields"
+      rightSlot={<ViewDetailLink href="/admin?tab=schemas" label="View coverage breakdown" />}
+    >
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
+        <div className="flex shrink-0 flex-col gap-1 sm:w-[180px]">
+          <span className="font-serif text-5xl leading-none font-semibold text-foreground tabular-nums">
+            {COVERAGE_OVERALL}%
+          </span>
+          <span className="text-xs text-muted-foreground">
+            5,318 of 6,817 fields populated
+          </span>
+        </div>
+        <ul className="flex flex-1 flex-col gap-3">
+          {lowest ? (
+            <li className="flex items-start gap-3 rounded-md border border-destructive/20 bg-destructive/[0.04] px-3 py-2.5">
+              <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                Low
+              </span>
+              <p className="text-sm text-foreground">
+                <span className="font-medium">{lowest.name}</span>{' '}
+                <span className="text-muted-foreground">
+                  only {lowest.coverage}% of fields populated across {lowest.documents} documents.
+                </span>
+              </p>
+            </li>
+          ) : null}
+          {highest ? (
+            <li className="flex items-start gap-3 rounded-md border border-primary/20 bg-primary/[0.04] px-3 py-2.5">
+              <span className="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                Strong
+              </span>
+              <p className="text-sm text-foreground">
+                <span className="font-medium">{highest.name}</span>{' '}
+                <span className="text-muted-foreground">
+                  {highest.coverage}% populated — the firm’s most complete schema.
+                </span>
+              </p>
+            </li>
+          ) : null}
+        </ul>
+      </div>
+    </ActivityPanel>
+  );
+}
+
+function UsageHighlights({ metrics }: { metrics: UsageHighlight[] }) {
+  return (
+    <ActivityPanel
+      title="Usage"
+      subtitle="Sparklines highlighting anything out of the ordinary"
+      rightSlot={<ViewDetailLink href="#" label="View all metrics" />}
+    >
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {metrics.map((m) => (
+          <div
+            key={m.label}
+            className="flex flex-col gap-2 rounded-md border border-border bg-background p-3"
+          >
+            <UsageMetricTile metric={m} />
+            <p className="text-xs leading-5 text-muted-foreground">{m.annotation}</p>
+          </div>
+        ))}
+      </div>
+    </ActivityPanel>
   );
 }
 
@@ -824,6 +1437,191 @@ function SchemasTable({
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function SchemaPageLayoutToggle({
+  value,
+  onChange,
+}: {
+  value: 'A' | 'B';
+  onChange: (v: 'A' | 'B') => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Page layout variant"
+      className="flex h-8 items-center rounded-md border border-border bg-card p-0.5"
+    >
+      <button
+        type="button"
+        aria-label="Layout A · split"
+        data-active={value === 'A' || undefined}
+        onClick={() => onChange('A')}
+        className="flex h-7 min-w-[60px] items-center justify-center rounded px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground"
+      >
+        Layout A
+      </button>
+      <button
+        type="button"
+        aria-label="Layout B · tabbed"
+        data-active={value === 'B' || undefined}
+        onClick={() => onChange('B')}
+        className="flex h-7 min-w-[60px] items-center justify-center rounded px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-accent data-[active=true]:text-foreground"
+      >
+        Layout B
+      </button>
+    </div>
+  );
+}
+
+function SchemaPageLayoutB({
+  moduleTab,
+  setModuleTab,
+  selectedSchemas,
+  toggleSchema,
+  toggleAllSchemas,
+}: {
+  moduleTab: ModuleTab;
+  setModuleTab: (v: ModuleTab) => void;
+  selectedSchemas: Set<string>;
+  toggleSchema: (name: string) => void;
+  toggleAllSchemas: () => void;
+}) {
+  const layoutBKpis = KPIS.filter((k) => k.id !== 'indexed');
+  const [docSelection, setDocSelection] = useState<Set<string>>(new Set());
+  return (
+    <div className="flex flex-col gap-5">
+      <KpiTiles
+        tiles={layoutBKpis}
+        value={moduleTab}
+        onChange={(v) => setModuleTab(v as ModuleTab)}
+      />
+      <div className="flex flex-col gap-6 pt-3">
+        {moduleTab === 'issues' ? (
+          <>
+            <NeedsAttention />
+            <DocumentsTable
+              selected={docSelection}
+              onToggle={(id) =>
+                setDocSelection((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+              onToggleAll={() => setDocSelection(new Set())}
+            />
+          </>
+        ) : null}
+        {moduleTab === 'coverage' ? (
+          <>
+            <SchemaCoverage />
+            <SchemasTable
+              selected={selectedSchemas}
+              onToggle={toggleSchema}
+              onToggleAll={toggleAllSchemas}
+            />
+          </>
+        ) : null}
+        {moduleTab === 'usage' ? <UsageMetricsGrouped /> : null}
+      </div>
+    </div>
+  );
+}
+
+const EXTRACTION_METRICS: UsageMetric[] = [
+  {
+    label: 'Documents extracted',
+    value: '4,367',
+    delta: '+12%',
+    data: [22, 30, 28, 65, 80, 55, 48],
+  },
+  {
+    label: 'Avg extraction time',
+    value: '3.2 min',
+    delta: '-0.4 min',
+    data: [50, 45, 50, 40, 45, 38, 35],
+  },
+];
+
+const SUMMARIZATION_METRICS: UsageMetric[] = [
+  {
+    label: 'Summaries generated',
+    value: '1,204',
+    delta: '+5%',
+    data: [40, 45, 50, 48, 55, 58, 62],
+  },
+  {
+    label: 'Avg summary length',
+    value: '248 words',
+    delta: '+12 words',
+    data: [30, 35, 38, 42, 45, 48, 50],
+  },
+];
+
+const REDACTION_METRICS: UsageMetric[] = [
+  {
+    label: 'Documents redacted',
+    value: '312',
+    delta: '+18',
+    info: true,
+    data: [25, 30, 35, 38, 42, 48, 52],
+  },
+  {
+    label: 'Sensitive items flagged',
+    value: '47',
+    delta: '-3',
+    data: [50, 45, 48, 42, 40, 38, 32],
+  },
+];
+
+function UsageMetricsGrouped() {
+  return (
+    <section
+      id="module-usage-grouped"
+      role="region"
+      aria-label="Usage metrics by activity"
+      className="flex flex-col gap-5 rounded-lg border border-border bg-card p-5 shadow-xs"
+    >
+      <header className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 border-b-2 border-primary pb-0.5 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+        >
+          Last 30 days
+          <ChevronDown className="size-3.5" />
+        </button>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Collapse
+          <Minus className="size-3" />
+        </button>
+      </header>
+
+      <UsageGroup title="Extraction" metrics={EXTRACTION_METRICS} />
+      <UsageGroup title="Summarization" metrics={SUMMARIZATION_METRICS} />
+      <UsageGroup title="Redaction" metrics={REDACTION_METRICS} />
+    </section>
+  );
+}
+
+function UsageGroup({ title, metrics }: { title: string; metrics: UsageMetric[] }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-baseline gap-2 border-b border-border pb-1">
+        <h4 className="font-serif text-sm font-semibold text-foreground">{title}</h4>
+        <span className="text-[11px] text-muted-foreground">{metrics.length} metrics</span>
+      </div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+        {metrics.map((m) => (
+          <UsageMetricTile key={m.label} metric={m} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -1679,5 +2477,588 @@ function SortableHeader({
         ) : null}
       </button>
     </th>
+  );
+}
+
+type RedactionQueueItem = {
+  id: string;
+  document: string;
+  docType: string;
+  flags: number;
+  flagKind: 'PII' | 'Financial' | 'Competitor' | 'MNPI' | 'Privileged';
+  requestedBy: string;
+  submitted: string;
+  status: 'Awaiting review' | 'In review' | 'Ready to approve' | 'Approved';
+};
+
+const REDACTION_QUEUE: RedactionQueueItem[] = [
+  {
+    id: 'r1',
+    document: 'Acme Corp — Q3 Board Deck.pdf',
+    docType: 'Management presentation',
+    flags: 14,
+    flagKind: 'MNPI',
+    requestedBy: 'Bruce Tucker',
+    submitted: '12 min ago',
+    status: 'Awaiting review',
+  },
+  {
+    id: 'r2',
+    document: 'Globex — Founder Cap Table.xlsx',
+    docType: 'Cap table',
+    flags: 9,
+    flagKind: 'PII',
+    requestedBy: 'Lynne Daniels',
+    submitted: '36 min ago',
+    status: 'Awaiting review',
+  },
+  {
+    id: 'r3',
+    document: 'Initech — Project Eagle CIM.pdf',
+    docType: 'Confidential information memorandum',
+    flags: 22,
+    flagKind: 'Competitor',
+    requestedBy: 'Darnell Jones',
+    submitted: '1 hr ago',
+    status: 'In review',
+  },
+  {
+    id: 'r4',
+    document: 'Hooli Capital — LP Side Letter.docx',
+    docType: 'Side letter',
+    flags: 6,
+    flagKind: 'Privileged',
+    requestedBy: 'Ming Zao',
+    submitted: '2 hrs ago',
+    status: 'In review',
+  },
+  {
+    id: 'r5',
+    document: 'Bristol — Diligence Q&A.docx',
+    docType: 'Diligence',
+    flags: 3,
+    flagKind: 'Financial',
+    requestedBy: 'Bruce Tucker',
+    submitted: '3 hrs ago',
+    status: 'In review',
+  },
+  {
+    id: 'r6',
+    document: 'Cypress — Investor List.csv',
+    docType: 'Investor list',
+    flags: 41,
+    flagKind: 'PII',
+    requestedBy: 'Lynne Daniels',
+    submitted: '5 hrs ago',
+    status: 'Ready to approve',
+  },
+  {
+    id: 'r7',
+    document: 'Davenport — Term Sheet draft.docx',
+    docType: 'Term sheet',
+    flags: 4,
+    flagKind: 'Financial',
+    requestedBy: 'Ming Zao',
+    submitted: 'Yesterday',
+    status: 'Ready to approve',
+  },
+  {
+    id: 'r8',
+    document: 'Evergreen — Cap Intro Memo.pdf',
+    docType: 'Memo',
+    flags: 2,
+    flagKind: 'Competitor',
+    requestedBy: 'Darnell Jones',
+    submitted: 'Yesterday',
+    status: 'Ready to approve',
+  },
+  {
+    id: 'r9',
+    document: 'Falcon — Pitch deck.pdf',
+    docType: 'Pitch deck',
+    flags: 11,
+    flagKind: 'MNPI',
+    requestedBy: 'Bruce Tucker',
+    submitted: '2 days ago',
+    status: 'Ready to approve',
+  },
+];
+
+type RedactionAttentionItem = {
+  document: string;
+  issue: string;
+  detail: string;
+  tone: 'warning' | 'destructive';
+  icon: typeof AlertTriangle;
+};
+
+const REDACTION_ATTENTION: RedactionAttentionItem[] = [
+  {
+    document: 'Globex — Founder Cap Table.xlsx',
+    issue: 'Sensitive PII detected',
+    detail: '9 SSN-pattern matches need a reviewer with Tier-2 clearance',
+    tone: 'destructive',
+    icon: ShieldAlert,
+  },
+  {
+    document: 'Acme Corp — Q3 Board Deck.pdf',
+    issue: 'MNPI flag',
+    detail: '14 forward-looking statements flagged as material non-public',
+    tone: 'destructive',
+    icon: AlertCircle,
+  },
+  {
+    document: 'Initech — Project Eagle CIM.pdf',
+    issue: 'Competitor name match',
+    detail: '22 references to “Hooli Inc.” auto-redacted — confirm intent',
+    tone: 'warning',
+    icon: AlertTriangle,
+  },
+  {
+    document: 'Hooli Capital — LP Side Letter.docx',
+    issue: 'Privileged content',
+    detail: '6 paragraphs flagged as attorney-client — escalate to GC',
+    tone: 'warning',
+    icon: AlertTriangle,
+  },
+];
+
+const REDACTION_USAGE_HIGHLIGHTS: UsageHighlight[] = [
+  {
+    label: 'Documents redacted',
+    value: '312',
+    delta: '+18',
+    data: [25, 30, 35, 38, 42, 48, 52],
+    annotation: 'Up sharply — bulk import from Project Eagle drove most of the spike.',
+  },
+  {
+    label: 'Avg time to review',
+    value: '6.4 min',
+    delta: '-0.8 min',
+    data: [50, 45, 48, 42, 40, 38, 35],
+    annotation: 'Reviewer pool grew by 3 this period; queues are clearing faster.',
+  },
+  {
+    label: 'Sensitive items flagged',
+    value: '47',
+    delta: '-3',
+    data: [50, 45, 48, 42, 40, 38, 32],
+    annotation: 'Slight dip — Founder Cap Table cluster is the one outlier this week.',
+  },
+];
+
+const REDACTION_CATEGORIES: { label: string; count: number; share: number; tone: 'destructive' | 'warning' | 'neutral' }[] = [
+  { label: 'PII (names, IDs)', count: 18, share: 38, tone: 'destructive' },
+  { label: 'Financial figures', count: 12, share: 26, tone: 'warning' },
+  { label: 'Competitor names', count: 9, share: 19, tone: 'warning' },
+  { label: 'MNPI / privileged', count: 8, share: 17, tone: 'destructive' },
+];
+
+function RedactionLayoutB() {
+  const searchParams = useSearchParams();
+  const initialView = searchParams?.get('view');
+  const [innerTab, setInnerTab] = useState<'activity' | 'list'>(
+    initialView === 'list' ? 'list' : 'activity',
+  );
+  useEffect(() => {
+    const view = searchParams?.get('view');
+    setInnerTab(view === 'list' ? 'list' : 'activity');
+  }, [searchParams]);
+  return (
+    <div className="flex w-full max-w-[1140px] flex-col gap-5">
+      <PageHeader
+        title="Redaction"
+        subtitle="Review and approve auto-flagged sensitive content before documents leave the firm"
+      />
+      <InnerTabs
+        tabs={[
+          { value: 'activity', label: 'Activity' },
+          { value: 'list', label: `Queue (${REDACTION_QUEUE.length})` },
+        ]}
+        value={innerTab}
+        onChange={setInnerTab}
+      />
+      {innerTab === 'activity' ? <RedactionActivity /> : <RedactionQueueView />}
+    </div>
+  );
+}
+
+function RedactionActivity() {
+  const [range, setRange] = useState<TimeRange>('Past 30 days');
+  return (
+    <div className="ml-14 flex flex-col">
+      <ActivityTimeRange value={range} onChange={setRange} />
+      <div className="flex flex-col gap-7 pt-3">
+        <div className="w-full max-w-[760px]">
+          <ActivityPanel
+            title="Items needing review"
+            subtitle="Auto-flagged content awaiting a human decision"
+            rightSlot={
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary" className="bg-secondary text-foreground">
+                  {REDACTION_ATTENTION.length}
+                </Badge>
+                <ViewDetailLink href="/admin?tab=redaction" label="Open queue" />
+              </div>
+            }
+          >
+            <ul className="flex flex-col divide-y divide-border rounded-md border border-border overflow-hidden">
+              {REDACTION_ATTENTION.map((item) => {
+                const toneText =
+                  item.tone === 'destructive' ? 'text-destructive' : 'text-[#b45309]';
+                return (
+                  <li
+                    key={item.document}
+                    className="group/item flex items-center gap-3 bg-background px-4 py-3"
+                  >
+                    <span
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
+                        item.tone === 'destructive' ? 'bg-destructive/10' : 'bg-[#fef3c7]'
+                      }`}
+                    >
+                      <item.icon className={`size-4 ${toneText}`} />
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.document}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        <span className={toneText}>{item.issue}</span>{' '}
+                        <span className="text-foreground/30">·</span> {item.detail}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm">
+                      Review
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </ActivityPanel>
+        </div>
+
+        <div className="w-full max-w-[620px]">
+          <ActivityPanel
+            title="Sensitive items detected"
+            subtitle="What the auto-flagger surfaced for human review"
+            rightSlot={<ViewDetailLink href="#" label="View category breakdown" />}
+          >
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
+              <div className="flex shrink-0 flex-col gap-1 sm:w-[180px]">
+                <span className="font-serif text-5xl leading-none font-semibold text-foreground tabular-nums">
+                  47
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  items flagged across 9 documents
+                </span>
+              </div>
+              <ul className="flex flex-1 flex-col gap-2">
+                {REDACTION_CATEGORIES.map((c) => (
+                  <li
+                    key={c.label}
+                    className="flex items-center gap-3 text-sm"
+                  >
+                    <span className="flex-1 truncate text-foreground">{c.label}</span>
+                    <div className="relative h-1.5 w-20 overflow-hidden rounded-full bg-accent">
+                      <div
+                        className={`absolute inset-y-0 left-0 rounded-full ${
+                          c.tone === 'destructive'
+                            ? 'bg-destructive'
+                            : c.tone === 'warning'
+                              ? 'bg-[#f59e0b]'
+                              : 'bg-primary'
+                        }`}
+                        style={{ width: `${c.share * 2}%` }}
+                      />
+                    </div>
+                    <span className="w-10 shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">
+                      {c.count}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </ActivityPanel>
+        </div>
+
+        <div className="w-full max-w-[860px]">
+          <UsageHighlights metrics={REDACTION_USAGE_HIGHLIGHTS} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RedactionQueueView() {
+  return (
+    <div className="flex flex-col gap-4 pt-2">
+      <StackedToolbar
+        countLabel={`${REDACTION_QUEUE.length} items`}
+        primaryLabel="Add to queue"
+        searchAriaLabel="Search redaction queue"
+        layout="table"
+        onLayoutChange={() => {}}
+      />
+      <RedactionQueueTable items={REDACTION_QUEUE} />
+    </div>
+  );
+}
+
+function RedactionQueueTable({ items }: { items: RedactionQueueItem[] }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-border bg-card shadow-xs">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
+          <colgroup>
+            <col />
+            <col style={{ width: '200px' }} />
+            <col style={{ width: '110px' }} />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '140px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '160px' }} />
+          </colgroup>
+          <thead>
+            <tr className="h-11 border-b border-border bg-background/40">
+              <SortableHeader sorted>Document</SortableHeader>
+              <SortableHeader sorted>Doc type</SortableHeader>
+              <SortableHeader sorted>Flags</SortableHeader>
+              <SortableHeader sorted>Type</SortableHeader>
+              <SortableHeader sorted>Requested by</SortableHeader>
+              <SortableHeader sorted>Submitted</SortableHeader>
+              <SortableHeader sorted>Status</SortableHeader>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr
+                key={item.id}
+                className="group h-[52px] border-b border-border transition-colors last:border-b-0 hover:bg-accent"
+              >
+                <td className="px-3 align-middle">
+                  <a
+                    href="#"
+                    className="block truncate text-sm font-medium text-primary hover:underline"
+                    title={item.document}
+                  >
+                    {item.document}
+                  </a>
+                </td>
+                <td className="px-3 align-middle">
+                  <div className="truncate text-sm text-foreground" title={item.docType}>
+                    {item.docType}
+                  </div>
+                </td>
+                <td className="px-3 align-middle">
+                  <span className="inline-flex items-center gap-1 text-sm font-medium tabular-nums text-foreground">
+                    <Shield className="size-3.5 text-muted-foreground" />
+                    {item.flags}
+                  </span>
+                </td>
+                <td className="px-3 align-middle">
+                  <Badge variant="secondary" className="bg-secondary text-foreground">
+                    {item.flagKind}
+                  </Badge>
+                </td>
+                <td className="px-3 align-middle text-sm text-foreground">{item.requestedBy}</td>
+                <td className="px-3 align-middle text-sm text-muted-foreground">
+                  {item.submitted}
+                </td>
+                <td className="px-3 align-middle">
+                  <RedactionStatusPill status={item.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RedactionStatusPill({ status }: { status: RedactionQueueItem['status'] }) {
+  if (status === 'Awaiting review') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
+        <span className="size-1.5 rounded-full bg-destructive" />
+        {status}
+      </span>
+    );
+  }
+  if (status === 'In review') {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fef3c7] px-2.5 py-0.5 text-xs font-medium text-[#92400e]">
+        <span className="size-1.5 rounded-full bg-[#b45309]" />
+        {status}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+      <span className="size-1.5 rounded-full bg-primary" />
+      {status}
+    </span>
+  );
+}
+
+type FirmKnowledgeSection = {
+  icon: typeof Database;
+  iconTint: string;
+  iconColor: string;
+  title: string;
+  summary: string;
+  callouts: { label: string; count: number; tone: 'destructive' | 'warning' | 'neutral' }[];
+  activityHref: string;
+  listHref: string;
+  listLabel: string;
+};
+
+const FIRM_KNOWLEDGE_SECTIONS: FirmKnowledgeSection[] = [
+  {
+    icon: Database,
+    iconTint: 'bg-[#e8f1f2]',
+    iconColor: 'text-primary',
+    title: 'Knowledge hubs',
+    summary:
+      '6 hubs grounding chat responses across the firm. 4 need attention before they’re ready to ship.',
+    callouts: [
+      { label: 'Broken connectors', count: 1, tone: 'destructive' },
+      { label: 'Over-shared hubs', count: 1, tone: 'destructive' },
+      { label: 'Indexing failures', count: 1, tone: 'warning' },
+      { label: 'Unused hubs', count: 1, tone: 'warning' },
+    ],
+    activityHref: '/admin?tab=hubs',
+    listHref: '/admin?tab=hubs&view=list',
+    listLabel: 'View hubs',
+  },
+  {
+    icon: Layers,
+    iconTint: 'bg-[#fef3c7]',
+    iconColor: 'text-[#b45309]',
+    title: 'Document schemas',
+    summary:
+      '5 active ontologies covering 1,191 indexed documents. Coverage is at 77% — a few schemas are dragging the average down.',
+    callouts: [
+      { label: 'Documents with issues', count: 14, tone: 'warning' },
+      { label: 'Schemas below 65% coverage', count: 1, tone: 'destructive' },
+      { label: 'Schemas needing version bump', count: 2, tone: 'warning' },
+    ],
+    activityHref: '/admin?tab=schemas',
+    listHref: '/admin?tab=schemas&view=list',
+    listLabel: 'View schemas',
+  },
+  {
+    icon: Shield,
+    iconTint: 'bg-destructive/10',
+    iconColor: 'text-destructive',
+    title: 'Redaction',
+    summary:
+      '9 items in the queue awaiting your decision. PII and MNPI flags account for most of the volume this week.',
+    callouts: [
+      { label: 'Awaiting review', count: 2, tone: 'destructive' },
+      { label: 'In review', count: 3, tone: 'warning' },
+      { label: 'Ready to approve', count: 4, tone: 'neutral' },
+    ],
+    activityHref: '/admin?tab=redaction',
+    listHref: '/admin?tab=redaction&view=list',
+    listLabel: 'View queue',
+  },
+];
+
+function FirmKnowledgeLanding() {
+  const totalCallouts = FIRM_KNOWLEDGE_SECTIONS.reduce(
+    (n, s) => n + s.callouts.reduce((m, c) => m + c.count, 0),
+    0,
+  );
+  return (
+    <div className="flex w-full max-w-[1140px] flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="font-serif text-2xl leading-tight font-semibold text-foreground">
+          Firm Knowledge
+        </h1>
+        <p className="font-serif text-sm leading-5 text-muted-foreground">
+          Where extraction, retrieval, and redaction across your firm’s documents meet —{' '}
+          <span className="font-semibold text-foreground tabular-nums">{totalCallouts}</span> items
+          need your attention today
+        </p>
+      </header>
+
+      <div className="flex flex-col gap-4">
+        {FIRM_KNOWLEDGE_SECTIONS.map((section) => (
+          <FirmKnowledgeSectionCard key={section.title} section={section} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FirmKnowledgeSectionCard({ section }: { section: FirmKnowledgeSection }) {
+  const actionCount = section.callouts
+    .filter((c) => c.tone !== 'neutral')
+    .reduce((n, c) => n + c.count, 0);
+  return (
+    <article className="flex w-full max-w-[760px] flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-xs">
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <div
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-md',
+              section.iconTint,
+            )}
+          >
+            <section.icon className={cn('size-4', section.iconColor)} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h2 className="text-base font-semibold leading-tight text-foreground">
+              {section.title}
+            </h2>
+            <p className="text-xs leading-4 text-muted-foreground">{section.summary}</p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end leading-none">
+          <span className="font-serif text-3xl font-semibold tabular-nums text-foreground">
+            {actionCount}
+          </span>
+          <span className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+            need attention
+          </span>
+        </div>
+      </header>
+
+      <ul className="grid grid-cols-1 gap-x-6 gap-y-2 border-t border-border pt-3 sm:grid-cols-2">
+        {section.callouts.map((c) => (
+          <li key={c.label} className="flex items-baseline gap-2 text-sm">
+            <span
+              className={cn(
+                'min-w-[16px] text-base font-semibold leading-none tabular-nums',
+                c.tone === 'destructive'
+                  ? 'text-destructive'
+                  : c.tone === 'warning'
+                    ? 'text-[#92400e]'
+                    : 'text-foreground',
+              )}
+            >
+              {c.count}
+            </span>
+            <span className="truncate text-sm text-muted-foreground">{c.label}</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
+        <Link
+          href={section.activityHref}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary hover:bg-accent"
+        >
+          View activity
+        </Link>
+        <Link
+          href={section.listHref}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:border-primary hover:bg-accent"
+        >
+          {section.listLabel}
+        </Link>
+      </div>
+    </article>
   );
 }
