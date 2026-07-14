@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Clock,
   Download,
-  Filter,
   Search,
   TrendingUp,
   Users,
@@ -276,6 +275,7 @@ export function AdminUsage() {
   const [range, setRange] = useState<TimeRange>('Past 30 days');
   const [topPlaybooksMode, setTopPlaybooksMode] = useState<'runs' | 'users'>('runs');
   const [topUsersMode, setTopUsersMode] = useState<'playbooks' | 'sessions'>('playbooks');
+  const [source, setSource] = useState<'firm' | 'dealcloud' | 'time'>('firm');
 
   return (
     <div className="flex w-full max-w-[1140px] flex-col gap-5">
@@ -289,26 +289,6 @@ export function AdminUsage() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" data-icon="inline-start">
-            <Filter />
-            Filter
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" data-icon="inline-start">
-                <Clock />
-                {range}
-                <ChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {TIME_RANGES.map((opt) => (
-                <DropdownMenuItem key={opt} onClick={() => setRange(opt)}>
-                  {opt}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
           <Button size="sm" data-icon="inline-start">
             <Download />
             Export
@@ -318,6 +298,26 @@ export function AdminUsage() {
 
       <div className="flex justify-center">
         <MainTabs value={tab} onChange={setTab} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" data-icon="inline-start">
+              <Clock />
+              {range}
+              <ChevronDown />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {TIME_RANGES.map((opt) => (
+              <DropdownMenuItem key={opt} onClick={() => setRange(opt)}>
+                {opt}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <SourceTags value={source} onChange={setSource} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -386,6 +386,37 @@ function MainTabs({
           onClick={() => onChange(t.value)}
           data-active={value === t.value || undefined}
           className="flex h-7 min-w-[96px] items-center justify-center rounded px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground data-[active=true]:bg-background data-[active=true]:text-foreground data-[active=true]:shadow-xs"
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+type SourceTag = 'firm' | 'dealcloud' | 'time';
+
+function SourceTags({
+  value,
+  onChange,
+}: {
+  value: SourceTag;
+  onChange: (v: SourceTag) => void;
+}) {
+  const tags: { value: SourceTag; label: string }[] = [
+    { value: 'firm', label: 'Celeste for the firm' },
+    { value: 'dealcloud', label: 'DealCloud' },
+    { value: 'time', label: 'Time' },
+  ];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {tags.map((t) => (
+        <button
+          key={t.value}
+          type="button"
+          onClick={() => onChange(t.value)}
+          data-active={value === t.value || undefined}
+          className="rounded-full bg-accent px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent/70 data-[active=true]:bg-primary data-[active=true]:text-primary-foreground"
         >
           {t.label}
         </button>
