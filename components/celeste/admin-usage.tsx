@@ -279,21 +279,13 @@ export function AdminUsage() {
 
   return (
     <div className="flex w-full max-w-[1140px] flex-col gap-5">
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="font-serif text-2xl leading-tight font-semibold text-foreground">
-            Firm Usage
-          </h1>
-          <p className="font-serif text-sm leading-5 text-muted-foreground">
-            Celeste AI activity across your firm
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Button size="sm" data-icon="inline-start">
-            <Download />
-            Export
-          </Button>
-        </div>
+      <header className="flex flex-col gap-1">
+        <h1 className="font-serif text-2xl leading-tight font-semibold text-foreground">
+          Firm Usage
+        </h1>
+        <p className="font-serif text-sm leading-5 text-muted-foreground">
+          Celeste AI activity across your firm
+        </p>
       </header>
 
       <div className="flex justify-center">
@@ -318,6 +310,10 @@ export function AdminUsage() {
           </DropdownMenuContent>
         </DropdownMenu>
         <SourceTags value={source} onChange={setSource} />
+        <Button size="sm" data-icon="inline-start" className="ml-auto">
+          <Download />
+          Export
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
