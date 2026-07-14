@@ -612,7 +612,7 @@ function TopPlaybooks({
       <header className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
           <h2 className="text-xs font-medium tracking-wide text-foreground uppercase">
-            Top 10 playbooks
+            Top playbooks
           </h2>
           <p className="text-xs text-muted-foreground">
             {mode === 'runs' ? 'by total number of runs' : 'by runs by unique users'}
