@@ -11,7 +11,7 @@ export default function AdminIssuesPage() {
         className="flex items-center gap-1.5 px-6 pt-5 text-sm"
       >
         <Link
-          href="/admin?tab=schemas"
+          href="/admin/firm-knowledge?tab=schemas"
           className="text-muted-foreground transition-colors hover:text-foreground"
         >
           Document schemas

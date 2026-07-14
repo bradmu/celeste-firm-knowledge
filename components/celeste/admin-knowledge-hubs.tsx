@@ -948,7 +948,7 @@ function HubsActivity() {
             <Badge variant="secondary" className="bg-secondary text-foreground">
               {HUB_ATTENTION.length}
             </Badge>
-            <ViewDetailLink href="/admin?tab=hubs" label="View all hubs" />
+            <ViewDetailLink href="/admin/firm-knowledge?tab=hubs" label="View all hubs" />
           </div>
         }
       >
@@ -1110,7 +1110,7 @@ function CitationSummary() {
     <ActivityPanel
       title="Citation rate"
       subtitle="How a hub’s docs are cited when surfaced as context in chats"
-      rightSlot={<ViewDetailLink href="/admin?tab=hubs" label="View citation analysis" />}
+      rightSlot={<ViewDetailLink href="/admin/firm-knowledge?tab=hubs" label="View citation analysis" />}
     >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
         <div className="flex shrink-0 flex-col gap-1 sm:w-[180px]">
@@ -1165,7 +1165,7 @@ function CoverageSummary() {
     <ActivityPanel
       title="Coverage"
       subtitle="How fully documents are populating their schema fields"
-      rightSlot={<ViewDetailLink href="/admin?tab=schemas" label="View coverage breakdown" />}
+      rightSlot={<ViewDetailLink href="/admin/firm-knowledge?tab=schemas" label="View coverage breakdown" />}
     >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
         <div className="flex shrink-0 flex-col gap-1 sm:w-[180px]">
@@ -2698,7 +2698,7 @@ function RedactionActivity() {
                 <Badge variant="secondary" className="bg-secondary text-foreground">
                   {REDACTION_ATTENTION.length}
                 </Badge>
-                <ViewDetailLink href="/admin?tab=redaction" label="Open queue" />
+                <ViewDetailLink href="/admin/firm-knowledge?tab=redaction" label="Open queue" />
               </div>
             }
           >
@@ -2927,8 +2927,8 @@ const FIRM_KNOWLEDGE_SECTIONS: FirmKnowledgeSection[] = [
       { label: 'Indexing failures', count: 1, tone: 'warning' },
       { label: 'Unused hubs', count: 1, tone: 'warning' },
     ],
-    activityHref: '/admin?tab=hubs',
-    listHref: '/admin?tab=hubs&view=list',
+    activityHref: '/admin/firm-knowledge?tab=hubs',
+    listHref: '/admin/firm-knowledge?tab=hubs&view=list',
     listLabel: 'View hubs',
   },
   {
@@ -2943,8 +2943,8 @@ const FIRM_KNOWLEDGE_SECTIONS: FirmKnowledgeSection[] = [
       { label: 'Schemas below 65% coverage', count: 1, tone: 'destructive' },
       { label: 'Schemas needing version bump', count: 2, tone: 'warning' },
     ],
-    activityHref: '/admin?tab=schemas',
-    listHref: '/admin?tab=schemas&view=list',
+    activityHref: '/admin/firm-knowledge?tab=schemas',
+    listHref: '/admin/firm-knowledge?tab=schemas&view=list',
     listLabel: 'View schemas',
   },
   {
@@ -2959,8 +2959,8 @@ const FIRM_KNOWLEDGE_SECTIONS: FirmKnowledgeSection[] = [
       { label: 'In review', count: 3, tone: 'warning' },
       { label: 'Ready to approve', count: 4, tone: 'neutral' },
     ],
-    activityHref: '/admin?tab=redaction',
-    listHref: '/admin?tab=redaction&view=list',
+    activityHref: '/admin/firm-knowledge?tab=redaction',
+    listHref: '/admin/firm-knowledge?tab=redaction&view=list',
     listLabel: 'View queue',
   },
 ];

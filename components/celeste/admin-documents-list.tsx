@@ -251,7 +251,7 @@ export function AdminDocumentsList() {
   return (
     <div className="flex w-full max-w-[1280px] flex-col gap-5">
       <Link
-        href="/admin?tab=schemas"
+        href="/admin/firm-knowledge?tab=schemas"
         className="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" />

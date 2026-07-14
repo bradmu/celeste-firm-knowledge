@@ -1,13 +1,9 @@
-import { Suspense } from 'react';
-
-import { AdminKnowledgeHubs } from '@/components/celeste/admin-knowledge-hubs';
+import { AdminHome } from '@/components/celeste/admin-home';
 
 export default function AdminPage() {
   return (
     <main className="flex flex-1 justify-center px-8 pt-10 pb-16">
-      <Suspense fallback={null}>
-        <AdminKnowledgeHubs />
-      </Suspense>
+      <AdminHome />
     </main>
   );
 }

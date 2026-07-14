@@ -6,17 +6,21 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useAdminSubNavLayout } from './use-admin-subnav-layout';
 import {
   ArrowLeft,
+  BarChart3,
   Blocks,
+  BookOpen,
   ChevronDown,
   CirclePlay,
   CirclePlus,
-  Database,
+  Home,
   Inbox,
   Layers,
+  LayoutGrid,
   MessageSquare,
+  Network,
   PanelLeftClose,
-  Plug,
   Settings2,
+  ShieldCheck,
   Sparkles,
   Users,
   Wrench,
@@ -52,12 +56,17 @@ const PRIMARY_NAV: NavItem[] = [
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { label: 'Members', icon: Users, href: '/admin' },
-  { label: 'Connections', icon: Plug, href: '/admin' },
-  { label: 'Semantic Layer', icon: Layers, href: '/admin' },
-  { label: 'Firm Knowledge', icon: Database, href: '/admin' },
-  { label: 'Automations', icon: Zap, href: '/admin' },
-  { label: 'Settings', icon: Settings2, href: '/admin' },
+  { label: 'Home', icon: Home, href: '/admin' },
+  { label: 'Members', icon: Users, href: '#' },
+  { label: 'Connectors', icon: Network, href: '#' },
+  { label: 'Semantic layer', icon: Layers, href: '#' },
+  { label: 'Firm knowledge', icon: BookOpen, href: '/admin/firm-knowledge' },
+  { label: 'Skills', icon: Sparkles, href: '#' },
+  { label: 'Spaces', icon: LayoutGrid, href: '#' },
+  { label: 'Settings', icon: Settings2, href: '#' },
+  { label: 'Automations', icon: Zap, href: '/automations' },
+  { label: 'Audit', icon: ShieldCheck, href: '#' },
+  { label: 'Usage', icon: BarChart3, href: '/admin/usage' },
 ];
 
 const RECENT_GROUPS: { heading: string; items: { label: string; selected?: boolean }[] }[] = [
@@ -121,6 +130,11 @@ export function AppSidebar() {
   const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
   const variant: 'main' | 'admin' = pathname.startsWith('/admin') ? 'admin' : 'main';
+  const isFirmKnowledgePage =
+    pathname === '/admin/firm-knowledge' ||
+    pathname.startsWith('/admin/firm-knowledge/') ||
+    pathname.startsWith('/admin/documents') ||
+    pathname.startsWith('/admin/issues');
   const [subNavLayout, setSubNavLayout] = useAdminSubNavLayout();
   const tabParam = searchParams?.get('tab');
   const activeSchemaTab: 'hubs' | 'schemas' | 'redaction' | 'overview' =
@@ -131,10 +145,15 @@ export function AppSidebar() {
         : tabParam === 'hubs'
           ? 'hubs'
           : 'overview';
-  const activeAdmin =
-    subNavLayout === 'B' && pathname === '/admin' && activeSchemaTab !== 'overview'
-      ? ''
-      : 'Firm Knowledge';
+  const activeAdmin = pathname.startsWith('/admin/usage')
+    ? 'Usage'
+    : pathname.startsWith('/admin/firm-knowledge')
+      ? subNavLayout === 'B' && activeSchemaTab !== 'overview'
+        ? ''
+        : 'Firm knowledge'
+      : pathname === '/admin'
+        ? 'Home'
+        : '';
   const activePrimary =
     variant === 'admin'
       ? 'Admin'
@@ -257,7 +276,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 {ADMIN_NAV.map((item) => {
                   const active = item.label === activeAdmin;
-                  const isFirmKnowledge = item.label === 'Firm Knowledge';
+                  const isFirmKnowledge = item.label === 'Firm knowledge';
                   return (
                     <div key={item.label}>
                       <SidebarMenuItem>
@@ -279,12 +298,12 @@ export function AppSidebar() {
                               asChild
                               className="h-7 gap-2 px-2 py-1.5 text-xs font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
                               data-active={
-                                pathname === '/admin' && activeSchemaTab === 'hubs'
+                                pathname === '/admin/firm-knowledge' && activeSchemaTab === 'hubs'
                                   ? true
                                   : undefined
                               }
                             >
-                              <Link href="/admin?tab=hubs">
+                              <Link href="/admin/firm-knowledge?tab=hubs">
                                 <span>Knowledge hubs</span>
                               </Link>
                             </SidebarMenuButton>
@@ -294,12 +313,12 @@ export function AppSidebar() {
                               asChild
                               className="h-7 gap-2 px-2 py-1.5 text-xs font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
                               data-active={
-                                pathname === '/admin' && activeSchemaTab === 'schemas'
+                                pathname === '/admin/firm-knowledge' && activeSchemaTab === 'schemas'
                                   ? true
                                   : undefined
                               }
                             >
-                              <Link href="/admin?tab=schemas">
+                              <Link href="/admin/firm-knowledge?tab=schemas">
                                 <span>Document schemas</span>
                               </Link>
                             </SidebarMenuButton>
@@ -309,12 +328,12 @@ export function AppSidebar() {
                               asChild
                               className="h-7 gap-2 px-2 py-1.5 text-xs font-normal text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"
                               data-active={
-                                pathname === '/admin' && activeSchemaTab === 'redaction'
+                                pathname === '/admin/firm-knowledge' && activeSchemaTab === 'redaction'
                                   ? true
                                   : undefined
                               }
                             >
-                              <Link href="/admin?tab=redaction">
+                              <Link href="/admin/firm-knowledge?tab=redaction">
                                 <span>Redaction</span>
                               </Link>
                             </SidebarMenuButton>
@@ -331,7 +350,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="flex flex-col gap-2 border-t border-sidebar-border/40 px-2 py-2">
-        {variant === 'admin' ? (
+        {isFirmKnowledgePage ? (
           <SubNavLayoutToggle value={subNavLayout} onChange={setSubNavLayout} />
         ) : null}
         <SidebarMenu>
