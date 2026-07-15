@@ -8,7 +8,9 @@ import {
   ChevronRight,
   Clock,
   Download,
+  Info,
   Search,
+  TrendingDown,
   TrendingUp,
   Users,
   Zap,
@@ -25,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type MainTab = 'overview' | 'users';
 
@@ -40,11 +43,17 @@ type TimeRange = (typeof TIME_RANGES)[number];
 const ACTIVE_USERS_TREND = [58, 62, 60, 66, 72, 78, 82, 88, 90, 89, 92, 94];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
 
-type UserTypeSlice = { label: string; value: number; color: string };
+type UserTypeSlice = {
+  label: string;
+  value: number;
+  count: number;
+  color: string;
+  delta: number;
+};
 const USER_TYPES: UserTypeSlice[] = [
-  { label: 'Returning', value: 54, color: '#20727e' },
-  { label: 'New', value: 28, color: '#4ea8a3' },
-  { label: 'Inactive', value: 18, color: '#d9d1c7' },
+  { label: 'Returning', value: 54, count: 51, color: '#20727e', delta: 21 },
+  { label: 'New', value: 28, count: 26, color: '#4ea8a3', delta: 18 },
+  { label: 'Inactive', value: 18, count: 17, color: '#d9d1c7', delta: -23 },
 ];
 
 type UserPlaybookRun = { name: string; count: number; lastRun: string };
@@ -278,6 +287,7 @@ export function AdminUsage() {
   const [source, setSource] = useState<'firm' | 'dealcloud' | 'time'>('firm');
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="flex w-full max-w-[1140px] flex-col gap-5">
       <header className="flex flex-col gap-1">
         <h1 className="font-serif text-2xl leading-tight font-semibold text-foreground">
@@ -329,12 +339,14 @@ export function AdminUsage() {
               value="1,247"
               trend="+12% vs last period"
               icon={Clock}
+              hint="Total number of chat sessions started across your firm in the selected period. Each new conversation counts as one chat."
             />
             <KpiCard
               label="Playbook runs"
               value="389"
               trend="+41% vs last period"
               icon={Zap}
+              hint="Total number of playbook executions across your firm in the selected period, including scheduled, event-triggered, and manual runs."
             />
           </div>
 
@@ -353,6 +365,7 @@ export function AdminUsage() {
         </>
       )}
     </div>
+    </TooltipProvider>
   );
 }
 
@@ -387,6 +400,25 @@ function MainTabs({
         </button>
       ))}
     </div>
+  );
+}
+
+function InfoHint({ text }: { text: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label="What is this?"
+          className="flex size-4 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Info className="size-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[260px] text-xs leading-5">
+        {text}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -426,18 +458,23 @@ function KpiCard({
   value,
   trend,
   icon: Icon,
+  hint,
 }: {
   label: string;
   value: string;
   trend: string;
   icon: typeof Clock;
+  hint: string;
 }) {
   return (
     <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 shadow-xs">
       <header className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium tracking-wide text-foreground uppercase">
-          {label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium tracking-wide text-foreground uppercase">
+            {label}
+          </span>
+          <InfoHint text={hint} />
+        </div>
         <span className="flex size-9 items-center justify-center rounded-md bg-[#e8f1f2] text-primary">
           <Icon className="size-5" />
         </span>
@@ -459,9 +496,12 @@ function ActiveUsersCard({ trend }: { trend: number[] }) {
   return (
     <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 shadow-xs">
       <header className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium tracking-wide text-foreground uppercase">
-          Active users
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium tracking-wide text-foreground uppercase">
+            Active users
+          </span>
+          <InfoHint text="Unique users who started at least one chat or ran at least one playbook during the selected period." />
+        </div>
         <span className="flex size-9 items-center justify-center rounded-md bg-[#e8f1f2] text-primary">
           <Users className="size-5" />
         </span>
@@ -535,9 +575,12 @@ function UserTypesCard({ slices }: { slices: UserTypeSlice[] }) {
   return (
     <section className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 shadow-xs">
       <header className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium tracking-wide text-foreground uppercase">
-          User types
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium tracking-wide text-foreground uppercase">
+            User types
+          </span>
+          <InfoHint text="How active users break down: Returning have used Celeste before this period, New activated for the first time, Inactive are eligible users who never started a session this period." />
+        </div>
         <span className="flex size-9 items-center justify-center rounded-md bg-[#e8f1f2] text-primary">
           <UsersThreeIcon className="size-5" />
         </span>
@@ -546,15 +589,21 @@ function UserTypesCard({ slices }: { slices: UserTypeSlice[] }) {
         <UserTypesDonut slices={slices} size={132} />
         <ul className="flex flex-1 flex-col gap-1.5">
           {slices.map((s) => (
-            <li key={s.label} className="flex items-center gap-3 text-sm">
-              <span
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: s.color }}
-              />
-              <span className="flex-1 text-muted-foreground">{s.label}</span>
-              <span className="font-semibold tabular-nums text-foreground">
+            <li key={s.label} className="flex items-center gap-6 text-sm">
+              <div className="flex w-[100px] items-center gap-2.5">
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: s.color }}
+                />
+                <span className="text-muted-foreground">{s.label}</span>
+              </div>
+              <span className="w-8 text-right font-semibold tabular-nums text-foreground">
                 {s.value}%
               </span>
+              <span className="w-5 text-right tabular-nums text-muted-foreground">
+                {s.count}
+              </span>
+              <TrendDelta delta={s.delta} />
             </li>
           ))}
         </ul>
@@ -563,33 +612,58 @@ function UserTypesCard({ slices }: { slices: UserTypeSlice[] }) {
   );
 }
 
+function TrendDelta({ delta }: { delta: number }) {
+  if (delta === 0) return null;
+  const up = delta > 0;
+  const Icon = up ? TrendingUp : TrendingDown;
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1 text-xs tabular-nums',
+        up ? 'text-primary' : 'text-destructive',
+      )}
+    >
+      <Icon className="size-3.5" />
+      {up ? '+' : ''}
+      {delta}%
+    </span>
+  );
+}
+
 function UserTypesDonut({ slices, size = 128 }: { slices: UserTypeSlice[]; size?: number }) {
+  const cx = 50;
+  const cy = 50;
   const radius = 42;
-  const circumference = 2 * Math.PI * radius;
-  let offset = 0;
+  const strokeWidth = 12;
+  let startAngle = -90; // begin at top of circle (12 o'clock)
+  const arcs = slices.map((s) => {
+    const sweep = (s.value / 100) * 360;
+    const endAngle = startAngle + sweep;
+    const startRad = (startAngle * Math.PI) / 180;
+    const endRad = (endAngle * Math.PI) / 180;
+    const x1 = cx + radius * Math.cos(startRad);
+    const y1 = cy + radius * Math.sin(startRad);
+    const x2 = cx + radius * Math.cos(endRad);
+    const y2 = cy + radius * Math.sin(endRad);
+    const largeArc = sweep > 180 ? 1 : 0;
+    const d = `M ${x1.toFixed(3)} ${y1.toFixed(3)} A ${radius} ${radius} 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)}`;
+    startAngle = endAngle;
+    return { d, color: s.color, label: s.label };
+  });
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg viewBox="0 0 100 100" className="size-full -rotate-90">
-        <circle cx="50" cy="50" r={radius} stroke="#f4ede6" strokeWidth="12" fill="none" />
-        {slices.map((s) => {
-          const segLen = (s.value / 100) * circumference;
-          const dashArray = `${segLen} ${circumference - segLen}`;
-          const dashOffset = -offset;
-          offset += segLen;
-          return (
-            <circle
-              key={s.label}
-              cx="50"
-              cy="50"
-              r={radius}
-              stroke={s.color}
-              strokeWidth="12"
-              fill="none"
-              strokeDasharray={dashArray}
-              strokeDashoffset={dashOffset}
-            />
-          );
-        })}
+      <svg viewBox="0 0 100 100" className="size-full">
+        <circle cx={cx} cy={cy} r={radius} stroke="#f4ede6" strokeWidth={strokeWidth} fill="none" />
+        {arcs.map((a) => (
+          <path
+            key={a.label}
+            d={a.d}
+            stroke={a.color}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeLinecap="butt"
+          />
+        ))}
       </svg>
     </div>
   );
@@ -611,9 +685,12 @@ function TopPlaybooks({
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-xs">
       <header className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-xs font-medium tracking-wide text-foreground uppercase">
-            Top playbooks
-          </h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-xs font-medium tracking-wide text-foreground uppercase">
+              Top playbooks
+            </h2>
+            <InfoHint text="The ten most-used playbooks in the selected period. Toggle to rank by total runs or by the count of unique users who ran each playbook." />
+          </div>
           <p className="text-xs text-muted-foreground">
             {mode === 'runs' ? 'by total number of runs' : 'by runs by unique users'}
           </p>
@@ -818,9 +895,12 @@ function TopUsers({
     <section className="flex flex-col gap-4 rounded-lg border border-border bg-card p-5 shadow-xs">
       <header className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-xs font-medium tracking-wide text-foreground uppercase">
-            Top 10 users
-          </h2>
+          <div className="flex items-center gap-1.5">
+            <h2 className="text-xs font-medium tracking-wide text-foreground uppercase">
+              Top users
+            </h2>
+            <InfoHint text="The ten most active users in the selected period. Toggle to rank by playbook runs or by number of chats started." />
+          </div>
           <p className="text-xs text-muted-foreground">
             by {mode === 'playbooks' ? 'playbook runs' : 'chats'}
           </p>
